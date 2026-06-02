@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MaterAssist</string>
+    <string name="title_activity_main">MaterAssist</string>
+    <string name="package_name">com.elias.materassist</string>
+    <string name="custom_url_scheme">com.elias.materassist</string>
+</resources>
