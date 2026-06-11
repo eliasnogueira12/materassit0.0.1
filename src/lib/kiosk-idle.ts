@@ -8,7 +8,7 @@ import { clearKioskSession } from "@/lib/customer";
  * - Shows a warning modal counting down the final 5 seconds.
  * - If no interaction occurs, it clears the customer session and redirects to the home screen (/).
  */
-export function useKioskIdle(idleSeconds = 15, warningSeconds = 5) {
+export function useKioskIdle(idleSeconds = 25, warningSeconds = 5) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 

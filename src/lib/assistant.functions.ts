@@ -102,6 +102,132 @@ async function getCachedCatalog() {
   return { catalog, productMap };
 }
 
+function searchLocalCatalog(queryText: string, catalog: { products: any[]; problems: any[] }) {
+  // Normalize string for comparison: lowercase, remove accents, remove punctuation
+  const normalize = (str: string) => {
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, " ")
+      .trim();
+  };
+
+  const normalizedQuery = normalize(queryText);
+  const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 1);
+
+  if (queryWords.length === 0) {
+    return {
+      reply: "Lamento, não consegui compreender a sua pesquisa. Por favor, tente descrever o problema ou o produto que procura com outras palavras.",
+      products: []
+    };
+  }
+
+  // Common stop words in Portuguese to ignore
+  const stopWords = new Set(["o", "a", "os", "as", "um", "uma", "uns", "umas", "de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas", "para", "por", "com", "sem", "ou", "e", "que", "se", "como", "mais", "tem", "têm", "quero", "procura", "preciso", "gostaria", "saber"]);
+
+  const searchWords = queryWords.filter(w => !stopWords.has(w));
+  const activeWords = searchWords.length > 0 ? searchWords : queryWords;
+
+  // Search Products
+  const matchedProducts = catalog.products.map(p => {
+    let score = 0;
+    const nameNorm = normalize(p.name || "");
+    const descNorm = normalize(p.description || "");
+    const catNorm = normalize(p.category || "");
+    const keywordsNorm = normalize(p.keywords || "");
+    const codeNorm = normalize(p.code || "");
+
+    activeWords.forEach(word => {
+      // High score for exact match in name or code
+      if (nameNorm.includes(word)) score += 5;
+      if (codeNorm.includes(word)) score += 10;
+      if (catNorm.includes(word)) score += 3;
+      if (keywordsNorm.includes(word)) score += 2;
+      if (descNorm.includes(word)) score += 1;
+    });
+
+    return { product: p, score };
+  })
+  .filter(item => item.score > 0)
+  .sort((a, b) => b.score - a.score);
+
+  // Search Problems
+  const matchedProblems = catalog.problems.map(p => {
+    let score = 0;
+    const titleNorm = normalize(p.title || "");
+    const descNorm = normalize(p.description || "");
+    const catNorm = normalize(p.category || "");
+    const solutionNorm = normalize(p.solution || "");
+    const keywordsNorm = normalize(p.keywords || "");
+
+    activeWords.forEach(word => {
+      if (titleNorm.includes(word)) score += 5;
+      if (catNorm.includes(word)) score += 3;
+      if (keywordsNorm.includes(word)) score += 2;
+      if (descNorm.includes(word)) score += 2;
+      if (solutionNorm.includes(word)) score += 2;
+    });
+
+    return { problem: p, score };
+  })
+  .filter(item => item.score > 0)
+  .sort((a, b) => b.score - a.score);
+
+  // If no matches found
+  if (matchedProducts.length === 0 && matchedProblems.length === 0) {
+    return {
+      reply: "Pedimos desculpa, mas estamos temporariamente com dificuldades de ligação e não conseguimos encontrar informações locais para a sua pesquisa. 😔\n\nPor favor, utilize o botão abaixo para chamar um funcionário para assistência presencial na loja.",
+      products: []
+    };
+  }
+
+  // Format response in PT-PT
+  let reply = "⚠️ *[Modo de Emergência Ativo - Ligação Temporária]*\n";
+  reply += "Lamento, mas estou temporariamente com dificuldades em contactar o meu sistema central. Ativei o motor de pesquisa local MarquesMater para ajudá-lo de imediato com base no nosso catálogo.\n\n";
+
+  // List problems
+  if (matchedProblems.length > 0) {
+    reply += "💡 **Tutoriais e Resolução de Problemas Encontrados:**\n";
+    matchedProblems.slice(0, 2).forEach(item => {
+      const p = item.problem;
+      reply += `• **${p.title}** (${p.category || "Geral"})\n`;
+      if (p.description) reply += `  *O que é:* ${p.description}\n`;
+      if (p.solution) reply += `  *Solução:* ${p.solution}\n`;
+      if (p.safety) reply += `  *⚠️ Aviso de Segurança:* ${p.safety}\n`;
+      reply += "\n";
+    });
+  }
+
+  // List products
+  const productsToRecommend: any[] = [];
+  if (matchedProducts.length > 0) {
+    reply += "📦 **Produtos Relacionados no Catálogo:**\n";
+    matchedProducts.slice(0, 4).forEach(item => {
+      const p = item.product;
+      const priceText = p.promotion != null 
+        ? `€${Number(p.promotion).toFixed(2)} (Promoção, antes €${Number(p.price).toFixed(2)})` 
+        : p.price != null ? `€${Number(p.price).toFixed(2)}` : "Preço sob consulta";
+      
+      reply += `• **${p.name}**\n`;
+      reply += `  - Corredor/Localização: ${p.location || "Consultar equipa"}\n`;
+      reply += `  - Preço: ${priceText}\n`;
+      if (p.stock != null) {
+        reply += `  - Stock: ${p.stock > 0 ? `${p.stock} unidades disponíveis` : "Sem stock de momento (consulte um funcionário)"}\n`;
+      }
+      reply += "\n";
+      productsToRecommend.push(p);
+    });
+  }
+
+  reply += "Adicionei estes produtos em cartões abaixo para sua conveniência. Se desejar saber mais ou chamar ajuda física, clique no botão 'Chamar Funcionário'.";
+
+  return {
+    reply,
+    products: productsToRecommend
+  };
+}
+
 export const askAssistant = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data }) => {
@@ -166,6 +292,7 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
 
     let reply = "Sem resposta.";
     let toolCalls: any[] = [];
+    let useLocalFallback = false;
 
     try {
       const provider = getAIProvider();
@@ -178,10 +305,27 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
       reply = result.reply;
       toolCalls = result.toolCalls ?? [];
     } catch (err: any) {
-      console.error("[askAssistant] AI execution failed:", err);
-      // Friendly fallback for the client
-      reply = "Lamento, mas estou temporariamente com dificuldades em contactar o meu sistema central. 😔\n\nPor favor, chame um dos nossos funcionários para que o possamos ajudar presencialmente.";
-      toolCalls = [];
+      console.error("[askAssistant] AI execution failed, initiating local fallback:", err);
+      useLocalFallback = true;
+    }
+
+    if (useLocalFallback) {
+      const localResults = searchLocalCatalog(data.message, catalog);
+      const recommended: RecommendedProduct[] = localResults.products.map((p: any) => {
+        const fullProduct = productMap.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          location: p.location,
+          price: p.price != null ? Number(p.price) : null,
+          promotion: p.promotion != null ? Number(p.promotion) : null,
+          stock: p.stock,
+          image_url: fullProduct?.image_url ?? null,
+          description: p.description ?? null,
+        };
+      });
+      return { reply: localResults.reply, greeting, products: recommended };
     }
 
     const recommended: RecommendedProduct[] = [];

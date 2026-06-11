@@ -88,11 +88,21 @@ function AssistantPage() {
     }, 2200);
   }
 
-  async function send() {
-    const q = text.trim();
+  const quickQuestions = [
+    { label: "Pintura", query: "Gostaria de saber mais sobre tintas e produtos de pintura.", icon: "🎨", color: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20" },
+    { label: "Eletricidade", query: "Quais os artigos de eletricidade e lâmpadas disponíveis?", icon: "⚡", color: "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20" },
+    { label: "Canalização", query: "Têm produtos para canalização ou fugas de água?", icon: "💧", color: "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20" },
+    { label: "Ferragens", query: "Que tipo de parafusos e ferragens têm na loja?", icon: "⚙️", color: "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20" },
+    { label: "Jardim", query: "Preciso de ferramentas ou terra para plantas no jardim.", icon: "🌱", color: "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20" },
+    { label: "Promoções", query: "Quais as principais promoções e descontos em vigor?", icon: "🏷️", color: "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20" },
+    { label: "Chamar Funcionário", action: "staff", icon: "🔔", color: "bg-destructive/10 border-destructive/20 text-destructive hover:bg-destructive/20" }
+  ];
+
+  async function send(customText?: string) {
+    const q = typeof customText === "string" ? customText.trim() : text.trim();
     if (!q || busy) return;
     setMessages((m) => [...m, { role: "user", content: q }]);
-    setText("");
+    if (typeof customText !== "string") setText("");
     setBusy(true);
     if (customer) logHistory(customer.id, "search", { query: q });
     try {
@@ -210,7 +220,27 @@ function AssistantPage() {
         </div>
       ) : (
         <>
-          <div className="mt-4 flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 shrink-0 mt-2 max-w-full select-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {quickQuestions.map((qq, idx) => (
+              <button
+                key={idx}
+                disabled={busy}
+                onClick={() => {
+                  if (qq.action === "staff") {
+                    callStaff();
+                  } else if (qq.query) {
+                    send(qq.query);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-4.5 py-2.5 rounded-full border text-base font-extrabold whitespace-nowrap cursor-pointer transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${qq.color} shadow-sm`}
+              >
+                <span>{qq.icon}</span>
+                <span>{qq.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-2 flex gap-2">
             <input
               value={text}
               disabled={busy}
