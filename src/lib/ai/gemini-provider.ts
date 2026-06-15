@@ -33,12 +33,13 @@ export class GeminiProvider implements AIProvider {
       body.tools = params.tools;
     }
 
-    let attempts = 3;
+    let attempts = 2;
     let lastError: any = null;
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const timeoutMs = attempt === 1 ? 5000 : 7000;
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const res = await fetch(apiEndpoint, {
@@ -55,8 +56,9 @@ export class GeminiProvider implements AIProvider {
 
         if (!res.ok) {
           const errorText = await res.text();
-          console.warn(`[GeminiProvider] Tentativa ${attempt} falhou com status ${res.status}:`, errorText);
-          throw new Error(`Gemini API Error (${res.status}): ${errorText || res.statusText}`);
+          console.warn(`[GeminiProvider] attempt ${attempt} status ${res.status}:`, errorText);
+          if (res.status < 500) throw new Error(`Gemini ${res.status}: ${errorText || res.statusText}`);
+          throw new Error(`Gemini ${res.status}`);
         }
 
         const json = await res.json();
@@ -68,15 +70,11 @@ export class GeminiProvider implements AIProvider {
       } catch (err: any) {
         clearTimeout(timeoutId);
         lastError = err;
-        console.warn(`[GeminiProvider] Tentativa ${attempt} falhou:`, err.message);
-        
-        if (attempt < attempts) {
-          const delay = attempt === 1 ? 250 : 500;
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
+        console.warn(`[GeminiProvider] attempt ${attempt}:`, err.message);
+        if (attempt < attempts) await new Promise((r) => setTimeout(r, 300));
       }
     }
 
-    throw lastError || new Error("Falha na API Gemini após múltiplas tentativas.");
+    throw lastError || new Error("Gemini API falhou após 2 tentativas.");
   }
 }

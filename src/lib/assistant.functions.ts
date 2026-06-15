@@ -45,14 +45,10 @@ export type RecommendedProduct = {
 let cachedCatalog: any = null;
 let cachedProductMap: Map<string, any> | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes cache
+let cachePromise: Promise<{ catalog: any; productMap: Map<string, any> }> | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
-async function getCachedCatalog() {
-  const now = Date.now();
-  if (cachedCatalog && cachedProductMap && (now - cacheTimestamp < CACHE_TTL_MS)) {
-    return { catalog: cachedCatalog, productMap: cachedProductMap };
-  }
-
+async function fetchCatalog() {
   const [{ data: products = [] }, { data: problems = [] }] = await Promise.all([
     supabaseAdmin
       .from("products")
@@ -68,10 +64,10 @@ async function getCachedCatalog() {
       .limit(200),
   ]);
 
-  const productMap = new Map((products ?? []).map((p) => [p.id, p]));
+  const productMap: Map<string, any> = new Map((products ?? []).map((p: any) => [p.id, p]));
 
   const catalog = {
-    products: (products ?? []).map((p) => ({
+    products: (products ?? []).map((p: any) => ({
       id: p.id,
       name: p.name,
       category: p.category,
@@ -85,7 +81,7 @@ async function getCachedCatalog() {
       code: p.internal_code,
       has_image: !!p.image_url,
     })),
-    problems: (problems ?? []).map((p) => ({
+    problems: (problems ?? []).map((p: any) => ({
       id: p.id,
       title: p.title,
       category: p.category,
@@ -98,51 +94,79 @@ async function getCachedCatalog() {
 
   cachedCatalog = catalog;
   cachedProductMap = productMap;
-  cacheTimestamp = now;
-
+  cacheTimestamp = Date.now();
   return { catalog, productMap };
 }
 
+function getCachedCatalog() {
+  const now = Date.now();
+  if (cachedCatalog && cachedProductMap && (now - cacheTimestamp < CACHE_TTL_MS)) {
+    return Promise.resolve({ catalog: cachedCatalog, productMap: cachedProductMap });
+  }
+  if (!cachePromise || (cacheTimestamp && (now - cacheTimestamp >= CACHE_TTL_MS))) {
+    cachePromise = fetchCatalog();
+  }
+  return cachePromise!;
+}
+
 function searchLocalCatalog(queryText: string, catalog: { products: any[]; problems: any[] }) {
-  // Normalize string for comparison: lowercase, remove accents, remove punctuation
   const normalize = (str: string) => {
     return str
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, " ")
+      .replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
   };
 
   const normalizedQuery = normalize(queryText);
-  const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 1);
+  let queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 1);
 
   if (queryWords.length === 0) {
-    return {
-      reply: "Lamento, não consegui compreender a sua pesquisa. Por favor, tente descrever o problema ou o produto que procura com outras palavras.",
-      products: []
-    };
+    return { reply: "Não consegui compreender a sua pesquisa. Tente descrever o problema ou o produto que procura com outras palavras.", products: [], matchedProductIds: [] };
   }
 
-  const activeWords = queryWords;
+  // Extract bigrams for phrase-level matching
+  const bigrams: string[] = [];
+  for (let i = 0; i < queryWords.length - 1; i++) {
+    bigrams.push(queryWords[i] + " " + queryWords[i + 1]);
+  }
+
+  function phraseScore(text: string, words: string[], grams: string[]): number {
+    let s = 0;
+    const t = normalize(text);
+    // Exact phrase match (highest)
+    if (grams.some(g => t.includes(g))) s += 8;
+    // Partial word matches (prefix)
+    words.forEach(w => {
+      if (t.includes(w)) s += 4;
+      else {
+        // Partial prefix match for typos / fragments
+        const parts = t.split(/\s+/);
+        if (parts.some(p => p.startsWith(w) || w.startsWith(p))) s += 2;
+      }
+    });
+    return s;
+  }
 
   // Search Products
   const matchedProducts = catalog.products.map(p => {
-    let score = 0;
-    const nameNorm = normalize(p.name || "");
-    const descNorm = normalize(p.description || "");
-    const catNorm = normalize(p.category || "");
-    const keywordsNorm = normalize(p.keywords || "");
-    const codeNorm = normalize(p.code || "");
+    const nm = normalize(p.name || "");
+    const desc = normalize(p.description || "");
+    const cat = normalize(p.category || "");
+    const kw = normalize(p.keywords || "");
+    const code = normalize(p.code || "");
 
-    activeWords.forEach(word => {
-      // High score for exact match in name or code
-      if (nameNorm.includes(word)) score += 5;
-      if (codeNorm.includes(word)) score += 10;
-      if (catNorm.includes(word)) score += 3;
-      if (keywordsNorm.includes(word)) score += 2;
-      if (descNorm.includes(word)) score += 1;
-    });
+    let score = 0;
+    score += phraseScore(nm, queryWords, bigrams) * 3;  // name weight 3x
+    score += phraseScore(code, queryWords, bigrams) * 3;
+    score += phraseScore(cat, queryWords, bigrams) * 2;
+    score += phraseScore(kw, queryWords, bigrams) * 1.5;
+    score += phraseScore(desc, queryWords, bigrams) * 1;
+
+    // Category boost: if product category matches any query word
+    if (cat && queryWords.some(w => w.length > 2 && cat.includes(w))) score += 2;
 
     return { product: p, score };
   })
@@ -151,76 +175,89 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
 
   // Search Problems
   const matchedProblems = catalog.problems.map(p => {
-    let score = 0;
-    const titleNorm = normalize(p.title || "");
-    const descNorm = normalize(p.description || "");
-    const catNorm = normalize(p.category || "");
-    const solutionNorm = normalize(p.solution || "");
-    const keywordsNorm = normalize(p.keywords || "");
+    const title = normalize(p.title || "");
+    const desc = normalize(p.description || "");
+    const cat = normalize(p.category || "");
+    const sol = normalize(p.solution || "");
+    const kw = normalize(p.keywords || "");
 
-    activeWords.forEach(word => {
-      if (titleNorm.includes(word)) score += 5;
-      if (catNorm.includes(word)) score += 3;
-      if (keywordsNorm.includes(word)) score += 2;
-      if (descNorm.includes(word)) score += 2;
-      if (solutionNorm.includes(word)) score += 2;
-    });
+    let score = 0;
+    score += phraseScore(title, queryWords, bigrams) * 3;
+    score += phraseScore(cat, queryWords, bigrams) * 2;
+    score += phraseScore(kw, queryWords, bigrams) * 2;
+    score += phraseScore(desc, queryWords, bigrams) * 1.5;
+    score += phraseScore(sol, queryWords, bigrams) * 1;
 
     return { problem: p, score };
   })
   .filter(item => item.score > 0)
   .sort((a, b) => b.score - a.score);
 
-  // If no matches found
+  const matchedProductIds = matchedProducts.map(item => item.product.id);
+
+  // No matches
   if (matchedProducts.length === 0 && matchedProblems.length === 0) {
     return {
-      reply: "Lamento, mas de momento não consegui encontrar nenhuma informação ou produto correspondente no catálogo da nossa loja. 😔\n\nPor favor, utilize o botão abaixo para chamar um funcionário para assistência presencial na loja, ou tente reescrever a sua pergunta por outras palavras.",
-      products: []
+      reply: "Não encontrei nada no catálogo para a sua pesquisa. 😔 Tente usar outras palavras ou clique no botão para chamar um funcionário.",
+      products: [],
+      matchedProductIds: [],
     };
   }
 
-  // Format response in PT-PT
-  let reply = "Encontrei as seguintes informações e recomendações no catálogo e guias práticos da loja:\n\n";
+  const nProds = matchedProducts.length;
+  const nProbs = matchedProblems.length;
 
-  // List problems
+  // Build natural response
+  const lines: string[] = [];
+
+  if (nProbs > 0 && nProds > 0) {
+    lines.push(`Encontrei ${nProds > 1 ? `${nProds} produtos` : "um produto"} e ${nProbs > 1 ? `${nProbs} guias práticos` : "um guia prático"} relacionados com a sua pesquisa:`);
+  } else if (nProbs > 0) {
+    lines.push(`Encontrei ${nProbs > 1 ? `${nProbs} guias práticos` : "um guia prático"} que pode ajudar:`);
+  } else {
+    lines.push(`Encontrei ${nProds > 1 ? `${nProds} produtos` : "um produto"} que correspondem à sua pesquisa:`);
+  }
+
   if (matchedProblems.length > 0) {
-    reply += "💡 **Resolução de Problemas / Tutoriais:**\n";
+    lines.push("");
     matchedProblems.slice(0, 2).forEach(item => {
       const p = item.problem;
-      reply += `• **${p.title}** (${p.category || "Geral"})\n`;
-      if (p.description) reply += `  *Sobre:* ${p.description}\n`;
-      if (p.solution) reply += `  *Solução recomendada:* ${p.solution}\n`;
-      if (p.safety) reply += `  *⚠️ Segurança:* ${p.safety}\n`;
-      reply += "\n";
+      lines.push(`💡 ${p.title}`);
+      if (p.description) lines.push(`  → ${p.description}`);
+      if (p.solution) lines.push(`  ✅ ${p.solution}`);
+      if (p.safety) lines.push(`  ⚠️ ${p.safety}`);
+      lines.push("");
     });
   }
 
-  // List products
   const productsToRecommend: any[] = [];
   if (matchedProducts.length > 0) {
-    reply += "📦 **Produtos Recomendados:**\n";
     matchedProducts.slice(0, 4).forEach(item => {
       const p = item.product;
-      const priceText = p.promotion != null 
-        ? `€${Number(p.promotion).toFixed(2)} (Promoção, antes €${Number(p.price).toFixed(2)})` 
-        : p.price != null ? `€${Number(p.price).toFixed(2)}` : "Preço sob consulta";
-      
-      reply += `• **${p.name}**\n`;
-      reply += `  - Corredor/Localização: ${p.location || "Consulte a equipa"}\n`;
-      reply += `  - Preço: ${priceText}\n`;
-      if (p.stock != null) {
-        reply += `  - Stock: ${p.stock > 0 ? `${p.stock} unidades disponíveis` : "Sem stock de momento (consulte um funcionário)"}\n`;
-      }
-      reply += "\n";
+      const price = p.promotion != null
+        ? `€${Number(p.promotion).toFixed(2)} (em promoção, €${Number(p.price).toFixed(2)})`
+        : p.price != null ? `€${Number(p.price).toFixed(2)}` : "preço sob consulta";
+      const loc = p.location ? `corredor ${p.location}` : null;
+      const st = p.stock != null
+        ? (p.stock > 0 ? `stock: ${p.stock} un.` : "stock indisponível")
+        : null;
+      const details = [price, loc, st].filter(Boolean).join(" · ");
+      lines.push(`📦 **${p.name}** — ${details}`);
       productsToRecommend.push(p);
     });
   }
 
-  reply += "Apresento também estes produtos em cartões abaixo para sua conveniência. Se desejar apoio presencial, clique no botão 'Chamar Funcionário'.";
+  lines.push("");
+  if (nProds > 0) {
+    lines.push("Os produtos aparecem em cartões abaixo. Precisa de mais alguma coisa?");
+  } else {
+    lines.push("Se precisar de ajuda presencial, clique em 'Chamar Funcionário'.");
+  }
 
   return {
-    reply,
-    products: productsToRecommend
+    reply: lines.join("\n"),
+    products: productsToRecommend,
+    matchedProductIds,
   };
 }
 
@@ -264,38 +301,28 @@ export const askAssistant = createServerFn({ method: "POST" })
       };
     }
 
-    // === AI ENHANCED MODE (optional, requires API key) ===
-    const catalogEmpty = catalog.products.length === 0 && catalog.problems.length === 0;
+    // === SMART AI MODE (only injects matched products — faster, cheaper, focused) ===
+    const localResults = searchLocalCatalog(data.message, catalog);
+    const ctxProds = localResults.matchedProductIds.length > 0
+      ? localResults.matchedProductIds.map(id => productMap.get(id)).filter(Boolean)
+      : catalog.products.slice(0, 8);
+    const ctxProbs = localResults.products.length === 0 && catalog.problems.length > 0
+      ? catalog.problems.slice(0, 5)
+      : [];
 
-    const system = `És o MaterAssist — o assistente virtual e consultor especializado da loja MarquesMater (artigos de construção, bricolage, tintas e jardinagem em Portugal). O teu objetivo é ajudar os clientes de forma simpática, prestável, profissional e altamente qualificada.
+    const system = `És o MaterAssist da MarquesMater (construção, bricolage, tintas, jardinagem em Portugal). Fala Português de Portugal de forma natural e conversacional.
 
-Fala SEMPRE em Português de Portugal (pt-PT), de forma natural, fluida e conversacional. Evita respostas robóticas ou genéricas. Explica conceitos de forma simples e direta, utilizando exemplos práticos quando apropriado.
+Data/Hora: ${greeting} · ${time} · ${weekday}. Usa "${greeting}" só na primeira resposta.
 
-=== INFORMAÇÃO TEMPORAL ===
-Data/Hora atual: ${greeting} · ${time} · ${weekday}. Cumprimenta com "${greeting}" apenas na primeira mensagem da conversa.
+Contexto atual da pesquisa do cliente (apenas produtos e guias relevantes):
+${JSON.stringify(ctxProds)}
+${ctxProbs.length > 0 ? `Guias relacionados:\n${JSON.stringify(ctxProbs)}` : ""}
 
-=== BASE DE CONHECIMENTO AUTÓNOMA (Única Fonte de Verdade) ===
-Tens acesso direto a todo o catálogo de produtos e problemas (FAQ/tutoriais) da loja. Analisa estes dados para responder:
-
-1. CATÁLOGO DE PRODUTOS:
-${JSON.stringify(catalog.products)}
-
-2. PROBLEMAS E TUTORIAIS (FAQ):
-${JSON.stringify(catalog.problems)}
-
-=== CAPACIDADES E INSTRUÇÕES DE RESPOSTA ===
-- CONSELHOS E SOLUÇÃO DE PROBLEMAS: Quando o cliente descreve um problema (ex: "tenho folhas amarelas", "torneira a pingar", "humidade na parede"), diagnostica possíveis causas de forma inteligente (ex: excesso de rega, falta de ferro, pragas, etc.) e propõe soluções práticas com base nos tutoriais e produtos em catálogo.
-- RECOMENDAÇÃO INTELIGENTE DE PRODUTOS: Recomenda produtos específicos que resolvam o problema do cliente ou que correspondam diretamente ao que ele procura (ex: "Qual o melhor fertilizante para tomateiros?"). Explica o porquê de cada recomendação com base nas descrições, características e utilidade de cada artigo.
-- COMPARAÇÃO DE PRODUTOS: Se o cliente hesitar ou perguntar, compara produtos diferentes (preços, características, stocks, vantagens e desvantagens) e sugere alternativas viáveis e adequadas ao orçamento/necessidade.
-- INFORMAÇÕES DO PRODUTO: Utiliza os preços reais, stocks (se disponível) e localizações físicas (secção, corredor, prateleira) para orientar o cliente. Se o stock for baixo ou nulo, avisa com simpatia.
-- LIMITES DO CATÁLOGO: Nunca inventes produtos, marcas ou preços. Se não encontrares nenhum produto correspondente para o que o cliente quer, sugere que ele chame um funcionário utilizando o botão no ecrã.
-
-=== REGRA DE OURO PARA PRODUTOS INTERATIVOS ===
-Sempre que recomendares produtos do catálogo no teu texto:
-1. Explica textualmente o porquê de os estares a sugerir.
-2. No final, deves obrigatoriamente chamar a tool "recommend_products" passando os IDs dos produtos recomendados (em ordem de relevância). O sistema irá desenhar cartões visuais premium com imagem, preço, stock e localização física dos produtos logo abaixo do teu texto. Não precisas de repetir exaustivamente esses dados no texto.
-
-Comporta-te como um verdadeiro consultor humano experiente da loja!`;
+Regras:
+- Responde com empatia e conhecimento prático.
+- Se recomendares produtos, usa a ferramenta "recommend_products" com os IDs respetivos.
+- Nunca inventes produtos, marcas ou preços.
+- Se não houver correspondência no catálogo, sugere chamar um funcionário.`;
 
     const history = (data.history ?? []).slice(-10);
 
@@ -330,7 +357,7 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
         systemPrompt: system,
         message: data.message,
         history,
-        tools: catalogEmpty ? [] : tools,
+        tools: localResults.matchedProductIds.length === 0 ? [] : tools,
       });
       reply = result.reply;
       toolCalls = result.toolCalls ?? [];
@@ -340,7 +367,6 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
     }
 
     if (useLocalFallback) {
-      const localResults = searchLocalCatalog(data.message, catalog);
       return { reply: localResults.reply, greeting, products: toRecommended(localResults.products, productMap) };
     }
 
