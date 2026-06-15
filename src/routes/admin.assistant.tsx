@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { askAssistant } from "@/lib/assistant.functions";
 import { Sparkles, Send, User, Bot } from "lucide-react";
@@ -22,6 +22,11 @@ function AdminAssistantPage() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, busy]);
+
   async function send() {
     const q = text.trim();
     if (!q || busy) return;
@@ -33,14 +38,12 @@ function AdminAssistantPage() {
       const { reply } = await ask({ data: { message: q, history } });
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
+      console.error("[AdminChat] Erro ao obter resposta:", e);
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content:
-            e instanceof Error
-              ? `Erro: ${e.message}`
-              : "Não foi possível obter resposta. Tente novamente.",
+          content: "Não foi possível obter resposta do sistema. Verifica se a base de dados está acessível.",
         },
       ]);
     } finally {
@@ -55,12 +58,12 @@ function AdminAssistantPage() {
         <div>
           <h1 className="text-3xl font-bold text-primary">Assistente IA</h1>
           <p className="text-muted-foreground text-sm">
-            Responde apenas com dados registados no catálogo.
+            Pesquisa no catálogo da loja em tempo real.
           </p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-card border rounded-2xl p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-card border rounded-2xl p-4 space-y-4 scroll-smooth">
         {messages.map((m, i) => (
           <div
             key={i}
@@ -78,7 +81,13 @@ function AdminAssistantPage() {
             </div>
           </div>
         ))}
-        {busy && <p className="text-muted-foreground text-sm animate-pulse">A pensar…</p>}
+        {busy && (
+          <div className="flex items-center gap-2 text-muted-foreground animate-pulse">
+            <Bot className="h-4 w-4" />
+            <span>A pensar…</span>
+          </div>
+        )}
+        <div ref={bottomRef} />
       </div>
 
       <div className="mt-4 flex gap-2">
@@ -87,12 +96,12 @@ function AdminAssistantPage() {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Ex: que tintas brancas temos em stock?"
-          className="flex-1 h-12 rounded-2xl px-4 border border-input bg-background"
+          className="flex-1 h-12 rounded-2xl px-4 border border-input bg-background outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
         <button
           onClick={send}
-          disabled={busy}
-          className="px-5 rounded-2xl bg-accent text-accent-foreground disabled:opacity-50"
+          disabled={busy || !text.trim()}
+          className="px-5 rounded-2xl bg-accent text-accent-foreground disabled:opacity-50 transition"
         >
           <Send className="h-5 w-5" />
         </button>

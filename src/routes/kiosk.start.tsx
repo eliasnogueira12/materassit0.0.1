@@ -25,23 +25,16 @@ function AssistantPage() {
   const navigate = useNavigate();
   const ask = useServerFn(askAssistant);
   const { customer, hydrated, setCustomer } = useCustomer();
-  const [initializingSession, setInitializingSession] = useState(false);
+  const sessionInitied = useRef(false);
 
   useEffect(() => {
-    if (hydrated && !customer && !initializingSession) {
-      setInitializingSession(true);
+    if (hydrated && !customer && !sessionInitied.current) {
+      sessionInitied.current = true;
       createCustomer()
-        .then((c) => {
-          setCustomer(c);
-        })
-        .catch((err) => {
-          console.error("Erro ao criar sessão de cliente silenciosa:", err);
-        })
-        .finally(() => {
-          setInitializingSession(false);
-        });
+        .then((c) => setCustomer(c))
+        .catch((err) => console.error("[Chat] Erro ao criar sessão:", err));
     }
-  }, [hydrated, customer, initializingSession, setCustomer]);
+  }, [hydrated, customer, setCustomer]);
 
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -73,8 +66,6 @@ function AssistantPage() {
     }
   }, [customer?.id]);
 
-  // Auto-scroll to last message
-  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -88,21 +79,11 @@ function AssistantPage() {
     }, 2200);
   }
 
-  const quickQuestions = [
-    { label: "Pintura", query: "Gostaria de saber mais sobre tintas e produtos de pintura.", icon: "🎨", color: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20" },
-    { label: "Eletricidade", query: "Quais os artigos de eletricidade e lâmpadas disponíveis?", icon: "⚡", color: "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20" },
-    { label: "Canalização", query: "Têm produtos para canalização ou fugas de água?", icon: "💧", color: "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20" },
-    { label: "Ferragens", query: "Que tipo de parafusos e ferragens têm na loja?", icon: "⚙️", color: "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20" },
-    { label: "Jardim", query: "Preciso de ferramentas ou terra para plantas no jardim.", icon: "🌱", color: "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20" },
-    { label: "Promoções", query: "Quais as principais promoções e descontos em vigor?", icon: "🏷️", color: "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20" },
-    { label: "Chamar Funcionário", action: "staff", icon: "🔔", color: "bg-destructive/10 border-destructive/20 text-destructive hover:bg-destructive/20" }
-  ];
-
-  async function send(customText?: string) {
-    const q = typeof customText === "string" ? customText.trim() : text.trim();
+  async function send() {
+    const q = text.trim();
     if (!q || busy) return;
     setMessages((m) => [...m, { role: "user", content: q }]);
-    if (typeof customText !== "string") setText("");
+    setText("");
     setBusy(true);
     if (customer) logHistory(customer.id, "search", { query: q });
     try {
@@ -114,12 +95,14 @@ function AssistantPage() {
           reply: reply.slice(0, 200),
           product_ids: products?.map((p) => p.id),
         });
-    } catch {
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "";
+      console.error("[Chat] Erro ao obter resposta:", errorMsg);
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content: "Não tenho essa informação registada no sistema. Pode chamar um funcionário.",
+          content: "Não tenho essa informação registada no sistema. Pode chamar um funcionário para assistência presencial.",
         },
       ]);
     } finally {
@@ -151,10 +134,11 @@ function AssistantPage() {
       setRequestId(data.id);
       setModalOpen(true);
       if (customer) logHistory(customer.id, "assistance", { request_id: data.id });
-    } catch {
+    } catch (err) {
+      console.error("[Chat] Erro ao chamar funcionário:", err);
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Não foi possível chamar a equipa agora. Tenta de novo." },
+        { role: "assistant", content: "Não foi possível chamar a equipa agora. Tenta de novo ou dirige-te a um funcionário na loja." },
       ]);
     } finally {
       setCalling(false);
@@ -176,9 +160,7 @@ function AssistantPage() {
         )}
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto bg-card/80 backdrop-blur border rounded-2xl p-4 space-y-4 shadow-inner scroll-smooth"
+      <div className="flex-1 overflow-y-auto bg-card/80 backdrop-blur border rounded-2xl p-4 space-y-4 shadow-inner scroll-smooth"
       >
         {messages.map((m, i) => (
           <div key={i} className="space-y-3">
@@ -220,26 +202,6 @@ function AssistantPage() {
         </div>
       ) : (
         <>
-          <div className="flex gap-2 overflow-x-auto pb-2 shrink-0 mt-2 max-w-full select-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {quickQuestions.map((qq, idx) => (
-              <button
-                key={idx}
-                disabled={busy}
-                onClick={() => {
-                  if (qq.action === "staff") {
-                    callStaff();
-                  } else if (qq.query) {
-                    send(qq.query);
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-4.5 py-2.5 rounded-full border text-base font-extrabold whitespace-nowrap cursor-pointer transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${qq.color} shadow-sm`}
-              >
-                <span>{qq.icon}</span>
-                <span>{qq.label}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="mt-2 flex gap-2">
             <input
               value={text}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Shield } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clearKioskSession } from "@/lib/customer";
 
 export const Route = createFileRoute("/")({
@@ -21,25 +21,42 @@ function greetingFor(date: Date) {
   return "Boa noite";
 }
 
+const ADMIN_TAPS = 7;
+const TAP_WINDOW_MS = 3000;
+
 function Home() {
   const [greeting, setGreeting] = useState<string | null>(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const tapCount = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
-    // Home is the "reset" point for the kiosk — wipe any prior customer session
-    // so the next visitor always starts fresh and private.
     clearKioskSession();
     setGreeting(greetingFor(new Date()));
     const id = setInterval(() => setGreeting(greetingFor(new Date())), 60_000);
     return () => clearInterval(id);
   }, []);
 
+  function handleLogoTap() {
+    tapCount.current += 1;
+    clearTimeout(tapTimer.current);
+    if (tapCount.current >= ADMIN_TAPS) {
+      setShowAdmin(true);
+      tapCount.current = 0;
+    } else {
+      tapTimer.current = setTimeout(() => { tapCount.current = 0; }, TAP_WINDOW_MS);
+    }
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary via-primary to-[hsl(220,60%,15%)] text-primary-foreground">
-      {/* Decorative blobs */}
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-3xl" />
 
       <div className="relative min-h-screen flex flex-col items-center justify-center px-8 text-center">
-        <Logo className="h-28 w-auto mb-8 drop-shadow-2xl bg-white/95 rounded-2xl p-3" />
+        <button onClick={handleLogoTap} className="cursor-pointer">
+          <Logo className="h-28 w-auto mb-8 drop-shadow-2xl bg-white/95 rounded-2xl p-3" />
+        </button>
         <p className="text-2xl md:text-3xl opacity-90 mb-2 min-h-[2.25rem]">{greeting ? `${greeting}!` : "\u00A0"}</p>
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
           Bem-vindo à MarquesMater
@@ -56,12 +73,14 @@ function Home() {
         </Link>
       </div>
 
-      <Link
-        to="/admin/login"
-        className="absolute bottom-4 right-4 flex items-center gap-1 text-xs opacity-50 hover:opacity-100"
-      >
-        <Shield className="h-3.5 w-3.5" /> Admin
-      </Link>
+      {showAdmin && (
+        <Link
+          to="/admin/login"
+          className="absolute bottom-4 right-4 flex items-center gap-1 text-xs opacity-50 hover:opacity-100 animate-fade-in"
+        >
+          <Shield className="h-3.5 w-3.5" /> Admin
+        </Link>
+      )}
     </main>
   );
 }

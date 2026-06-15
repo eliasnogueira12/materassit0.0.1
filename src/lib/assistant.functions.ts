@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getAIProvider } from "@/lib/ai/factory";
+import type { AIProvider } from "@/lib/ai/types";
 
 const MsgSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -123,11 +124,7 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
     };
   }
 
-  // Common stop words in Portuguese to ignore
-  const stopWords = new Set(["o", "a", "os", "as", "um", "uma", "uns", "umas", "de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas", "para", "por", "com", "sem", "ou", "e", "que", "se", "como", "mais", "tem", "têm", "quero", "procura", "preciso", "gostaria", "saber"]);
-
-  const searchWords = queryWords.filter(w => !stopWords.has(w));
-  const activeWords = searchWords.length > 0 ? searchWords : queryWords;
+  const activeWords = queryWords;
 
   // Search Products
   const matchedProducts = catalog.products.map(p => {
@@ -177,24 +174,23 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
   // If no matches found
   if (matchedProducts.length === 0 && matchedProblems.length === 0) {
     return {
-      reply: "Pedimos desculpa, mas estamos temporariamente com dificuldades de ligação e não conseguimos encontrar informações locais para a sua pesquisa. 😔\n\nPor favor, utilize o botão abaixo para chamar um funcionário para assistência presencial na loja.",
+      reply: "Lamento, mas de momento não consegui encontrar nenhuma informação ou produto correspondente no catálogo da nossa loja. 😔\n\nPor favor, utilize o botão abaixo para chamar um funcionário para assistência presencial na loja, ou tente reescrever a sua pergunta por outras palavras.",
       products: []
     };
   }
 
   // Format response in PT-PT
-  let reply = "⚠️ *[Modo de Emergência Ativo - Ligação Temporária]*\n";
-  reply += "Lamento, mas estou temporariamente com dificuldades em contactar o meu sistema central. Ativei o motor de pesquisa local MarquesMater para ajudá-lo de imediato com base no nosso catálogo.\n\n";
+  let reply = "Encontrei as seguintes informações e recomendações no catálogo e guias práticos da loja:\n\n";
 
   // List problems
   if (matchedProblems.length > 0) {
-    reply += "💡 **Tutoriais e Resolução de Problemas Encontrados:**\n";
+    reply += "💡 **Resolução de Problemas / Tutoriais:**\n";
     matchedProblems.slice(0, 2).forEach(item => {
       const p = item.problem;
       reply += `• **${p.title}** (${p.category || "Geral"})\n`;
-      if (p.description) reply += `  *O que é:* ${p.description}\n`;
-      if (p.solution) reply += `  *Solução:* ${p.solution}\n`;
-      if (p.safety) reply += `  *⚠️ Aviso de Segurança:* ${p.safety}\n`;
+      if (p.description) reply += `  *Sobre:* ${p.description}\n`;
+      if (p.solution) reply += `  *Solução recomendada:* ${p.solution}\n`;
+      if (p.safety) reply += `  *⚠️ Segurança:* ${p.safety}\n`;
       reply += "\n";
     });
   }
@@ -202,7 +198,7 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
   // List products
   const productsToRecommend: any[] = [];
   if (matchedProducts.length > 0) {
-    reply += "📦 **Produtos Relacionados no Catálogo:**\n";
+    reply += "📦 **Produtos Recomendados:**\n";
     matchedProducts.slice(0, 4).forEach(item => {
       const p = item.product;
       const priceText = p.promotion != null 
@@ -210,7 +206,7 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
         : p.price != null ? `€${Number(p.price).toFixed(2)}` : "Preço sob consulta";
       
       reply += `• **${p.name}**\n`;
-      reply += `  - Corredor/Localização: ${p.location || "Consultar equipa"}\n`;
+      reply += `  - Corredor/Localização: ${p.location || "Consulte a equipa"}\n`;
       reply += `  - Preço: ${priceText}\n`;
       if (p.stock != null) {
         reply += `  - Stock: ${p.stock > 0 ? `${p.stock} unidades disponíveis` : "Sem stock de momento (consulte um funcionário)"}\n`;
@@ -220,7 +216,7 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
     });
   }
 
-  reply += "Adicionei estes produtos em cartões abaixo para sua conveniência. Se desejar saber mais ou chamar ajuda física, clique no botão 'Chamar Funcionário'.";
+  reply += "Apresento também estes produtos em cartões abaixo para sua conveniência. Se desejar apoio presencial, clique no botão 'Chamar Funcionário'.";
 
   return {
     reply,
@@ -228,12 +224,47 @@ function searchLocalCatalog(queryText: string, catalog: { products: any[]; probl
   };
 }
 
+function toRecommended(products: any[], productMap: Map<string, any>): RecommendedProduct[] {
+  return products.map((p: any) => {
+    const full = productMap.get(p.id);
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      location: p.location,
+      price: p.price != null ? Number(p.price) : null,
+      promotion: p.promotion != null ? Number(p.promotion) : null,
+      stock: p.stock,
+      image_url: full?.image_url ?? null,
+      description: p.description ?? null,
+    };
+  });
+}
+
 export const askAssistant = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data }) => {
     const { catalog, productMap } = await getCachedCatalog();
-
     const { greeting, time, weekday } = lisbonNow();
+
+    // Detect AI availability once — if no API key is configured, skip AI entirely
+    let provider: AIProvider | null = null;
+    try {
+      provider = getAIProvider();
+    } catch {
+      /* No AI provider configured — independent local mode */
+    }
+
+    if (!provider) {
+      const localResults = searchLocalCatalog(data.message, catalog);
+      return {
+        reply: localResults.reply,
+        greeting,
+        products: toRecommended(localResults.products, productMap),
+      };
+    }
+
+    // === AI ENHANCED MODE (optional, requires API key) ===
     const catalogEmpty = catalog.products.length === 0 && catalog.problems.length === 0;
 
     const system = `És o MaterAssist — o assistente virtual e consultor especializado da loja MarquesMater (artigos de construção, bricolage, tintas e jardinagem em Portugal). O teu objetivo é ajudar os clientes de forma simpática, prestável, profissional e altamente qualificada.
@@ -295,7 +326,6 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
     let useLocalFallback = false;
 
     try {
-      const provider = getAIProvider();
       const result = await provider.sendMessage({
         systemPrompt: system,
         message: data.message,
@@ -311,21 +341,7 @@ Comporta-te como um verdadeiro consultor humano experiente da loja!`;
 
     if (useLocalFallback) {
       const localResults = searchLocalCatalog(data.message, catalog);
-      const recommended: RecommendedProduct[] = localResults.products.map((p: any) => {
-        const fullProduct = productMap.get(p.id);
-        return {
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          location: p.location,
-          price: p.price != null ? Number(p.price) : null,
-          promotion: p.promotion != null ? Number(p.promotion) : null,
-          stock: p.stock,
-          image_url: fullProduct?.image_url ?? null,
-          description: p.description ?? null,
-        };
-      });
-      return { reply: localResults.reply, greeting, products: recommended };
+      return { reply: localResults.reply, greeting, products: toRecommended(localResults.products, productMap) };
     }
 
     const recommended: RecommendedProduct[] = [];
