@@ -123,6 +123,25 @@
   }
 }
 
+/* High contrast mode (accessibility) */
+.high-contrast {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0 0 0);
+  --muted: oklch(0.9 0 0);
+  --muted-foreground: oklch(0.2 0 0);
+  --border: oklch(0.3 0 0);
+  --input: oklch(0.8 0 0);
+  --accent: oklch(0.3 0.15 265);
+  --accent-foreground: oklch(1 0 0);
+  --primary: oklch(0.2 0 0);
+  --primary-foreground: oklch(1 0 0);
+  text-decoration-thickness: 2px !important;
+}
+.high-contrast * { border-color: var(--border) !important; }
+.high-contrast a { text-decoration: underline !important; }
+
 /* Kiosk-friendly utilities */
 .kiosk-btn {
   display: inline-flex; align-items: center; justify-content: center;

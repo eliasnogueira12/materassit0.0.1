@@ -7,6 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCustomer, logHistory, clearKioskSession, createCustomer } from "@/lib/customer";
 import { AssistanceModal } from "@/components/AssistanceModal";
 import { ProductCard } from "@/components/ProductCard";
+import { useWakeLock, useIdleReset, useHideCursor, usePreventBack } from "@/lib/useKiosk";
+import { useI18n, greetingFor } from "@/lib/i18n";
+import { useAccessibility } from "@/lib/useAccessibility";
+import QRCode from "@/components/QRCode";
+import type { Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/kiosk/start")({
   component: AssistantPage,
@@ -14,17 +19,12 @@ export const Route = createFileRoute("/kiosk/start")({
 
 type Msg = { role: "user" | "assistant"; content: string; products?: RecommendedProduct[] };
 
-function greetingFor(d: Date) {
-  const h = d.getHours();
-  if (h >= 5 && h < 12) return "Bom dia";
-  if (h >= 12 && h < 19) return "Boa tarde";
-  return "Boa noite";
-}
-
 function AssistantPage() {
   const navigate = useNavigate();
   const ask = useServerFn(askAssistant);
   const { customer, hydrated, setCustomer } = useCustomer();
+  const { t, lang, setLang } = useI18n();
+  const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
   const sessionInitied = useRef(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ function AssistantPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: `${greetingFor(new Date())}! Sou o MaterAssist. Diz-me em palavras tuas o que precisas — por exemplo, "tenho humidade na parede" ou "preciso de tinta branca".`,
+      content: `${greetingFor(new Date(), lang)}! Sou o MaterAssist. ${lang === "pt" ? 'Diz-me em palavras tuas o que precisas — por exemplo, "tenho humidade na parede" ou "preciso de tinta branca".' : lang === "en" ? 'Tell me in your own words what you need — e.g., "I have a damp wall" or "I need white paint".' : 'Dime con tus palabras lo que necesitas — por ejemplo, "tengo humedad en la pared" o "necesito pintura blanca".'}`,
     },
   ]);
   const [text, setText] = useState("");
@@ -50,6 +50,11 @@ function AssistantPage() {
   const [calling, setCalling] = useState(false);
   const [farewell, setFarewell] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+
+  useWakeLock();
+  useIdleReset(true);
+  useHideCursor(true);
+  usePreventBack();
 
   useEffect(() => {
     if (customer?.id) {
@@ -155,9 +160,35 @@ function AssistantPage() {
         </div>
         {customer && (
           <div className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 animate-pulse">
-            <User className="h-4 w-4" /> Sessão Ativa
+            <User className="h-4 w-4" /> {t("session_active")}
           </div>
         )}
+      </div>
+
+      {/* Toolbar: language, accessibility */}
+      <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+        {/* Language */}
+        <div className="flex items-center gap-1">
+          {(["pt", "en", "es"] as Lang[]).map((l) => (
+            <button key={l} onClick={() => setLang(l)}
+              className={`px-2 py-0.5 rounded font-semibold transition ${lang === l ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}>
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <span className="opacity-30">|</span>
+        {/* Font size */}
+        <div className="flex items-center gap-1">
+          <button onClick={() => setFontSize(Math.max(80, fontSize - 10))} className="px-2 py-0.5 rounded hover:bg-muted transition" title={t("font_size")}>A−</button>
+          <span className="text-xs w-6 text-center">{fontSize}%</span>
+          <button onClick={() => setFontSize(Math.min(150, fontSize + 10))} className="px-2 py-0.5 rounded hover:bg-muted transition" title={t("font_size")}>A+</button>
+        </div>
+        <span className="opacity-30">|</span>
+        {/* High contrast */}
+        <button onClick={() => setHighContrast(!highContrast)}
+          className={`px-2 py-0.5 rounded font-semibold transition ${highContrast ? "bg-foreground text-background" : "hover:bg-muted"}`}>
+          {t("high_contrast")}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-card/80 backdrop-blur border rounded-2xl p-4 space-y-4 shadow-inner scroll-smooth"
@@ -256,8 +287,13 @@ function AssistantPage() {
       {farewell && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-primary via-primary to-[hsl(220,60%,15%)] text-primary-foreground animate-fade-in">
           <Heart className="h-24 w-24 text-accent animate-scale-in mb-6" />
-          <h2 className="text-5xl font-extrabold tracking-tight mb-3">Obrigado pela visita.</h2>
-          <p className="text-xl opacity-80">Até breve!</p>
+          <h2 className="text-5xl font-extrabold tracking-tight mb-3">{t("farewell_title")}</h2>
+          <p className="text-xl opacity-80 mb-6">{t("farewell_sub")}</p>
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-4 flex flex-col items-center gap-3">
+            <p className="text-sm opacity-80">{t("continue_phone")}</p>
+            <QRCode url={typeof window !== "undefined" ? window.location.href : ""} size={140} />
+            <p className="text-xs opacity-60 text-center max-w-48">{t("scan_qr")}</p>
+          </div>
         </div>
       )}
     </div>
