@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { askAssistant, type RecommendedProduct } from "@/lib/assistant.functions";
 import { Sparkles, Send, User, Bot, BellRing, LogOut, Heart } from "lucide-react";
@@ -8,10 +8,14 @@ import { useCustomer, logHistory, clearKioskSession, createCustomer } from "@/li
 import { AssistanceModal } from "@/components/AssistanceModal";
 import { ProductCard } from "@/components/ProductCard";
 import { useWakeLock, useIdleReset, useHideCursor, usePreventBack } from "@/lib/useKiosk";
-import { useI18n, greetingFor } from "@/lib/i18n";
+import { useI18n, greetingFor, FLAGS, type Lang } from "@/lib/i18n";
 import { useAccessibility } from "@/lib/useAccessibility";
 import QRCode from "@/components/QRCode";
-import type { Lang } from "@/lib/i18n";
+
+function isStandalone() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+}
 
 export const Route = createFileRoute("/kiosk/start")({
   component: AssistantPage,
@@ -26,6 +30,7 @@ function AssistantPage() {
   const { t, lang, setLang } = useI18n();
   const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
   const sessionInitied = useRef(false);
+  const standalone = useMemo(() => isStandalone(), []);
 
   useEffect(() => {
     if (hydrated && !customer && !sessionInitied.current) {
@@ -36,12 +41,29 @@ function AssistantPage() {
     }
   }, [hydrated, customer, setCustomer]);
 
+  const assistantIntro = useCallback((l: Lang) => {
+    const greeting = greetingFor(new Date(), l);
+    const intro: Record<Lang, string> = {
+      pt: `Diz-me em palavras tuas o que precisas — por exemplo, "tenho humidade na parede" ou "preciso de tinta branca".`,
+      en: `Tell me in your own words what you need — e.g., "I have a damp wall" or "I need white paint".`,
+      es: `Dime con tus palabras lo que necesitas — por ejemplo, "tengo humedad en la pared" o "necesito pintura blanca".`,
+    };
+    return `${greeting}! Sou o MaterAssist. ${intro[l]}`;
+  }, []);
+
   const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content: `${greetingFor(new Date(), lang)}! Sou o MaterAssist. ${lang === "pt" ? 'Diz-me em palavras tuas o que precisas — por exemplo, "tenho humidade na parede" ou "preciso de tinta branca".' : lang === "en" ? 'Tell me in your own words what you need — e.g., "I have a damp wall" or "I need white paint".' : 'Dime con tus palabras lo que necesitas — por ejemplo, "tengo humedad en la pared" o "necesito pintura blanca".'}`,
-    },
+    { role: "assistant", content: assistantIntro("pt") },
   ]);
+
+  useEffect(() => {
+    setMessages((m) => {
+      const updated = [...m];
+      if (updated.length > 0 && updated[0].role === "assistant" && !updated[0].products) {
+        updated[0] = { ...updated[0], content: assistantIntro(lang) };
+      }
+      return updated;
+    });
+  }, [lang, assistantIntro]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -52,8 +74,8 @@ function AssistantPage() {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useWakeLock();
-  useIdleReset(true);
-  useHideCursor(true);
+  useIdleReset(!standalone);
+  useHideCursor(!standalone);
   usePreventBack();
 
   useEffect(() => {
@@ -107,7 +129,7 @@ function AssistantPage() {
         ...m,
         {
           role: "assistant",
-          content: "Não tenho essa informação registada no sistema. Pode chamar um funcionário para assistência presencial.",
+          content: t("error_no_results"),
         },
       ]);
     } finally {
@@ -120,7 +142,7 @@ function AssistantPage() {
     setCalling(true);
     try {
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
-      const reason = lastUser?.content?.slice(0, 200) ?? "Pedido do assistente";
+      const reason = lastUser?.content?.slice(0, 200) ?? t("assistant_request");
       const expiresAt = new Date(Date.now() + 120_000).toISOString();
       const { data, error } = await supabase
         .from("assistance_requests")
@@ -143,7 +165,7 @@ function AssistantPage() {
       console.error("[Chat] Erro ao chamar funcionário:", err);
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Não foi possível chamar a equipa agora. Tenta de novo ou dirige-te a um funcionário na loja." },
+        { role: "assistant", content: t("error_call_staff") },
       ]);
     } finally {
       setCalling(false);
@@ -155,8 +177,8 @@ function AssistantPage() {
       <div className="flex items-center gap-3 mb-4">
         <Sparkles className="h-8 w-8 text-accent" />
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-primary">Assistente MaterAssist</h1>
-          <p className="text-muted-foreground">Descreve o que precisas por palavras tuas.</p>
+          <h1 className="text-3xl font-bold text-primary">{t("assistant_title")}</h1>
+          <p className="text-muted-foreground">{t("assistant_desc")}</p>
         </div>
         {customer && (
           <div className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 animate-pulse">
@@ -170,9 +192,9 @@ function AssistantPage() {
         {/* Language */}
         <div className="flex items-center gap-1">
           {(["pt", "en", "es"] as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className={`px-2 py-0.5 rounded font-semibold transition ${lang === l ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}>
-              {l.toUpperCase()}
+            <button key={l} onClick={() => setLang(l)} title={l.toUpperCase()}
+              className={`px-2 py-0.5 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}>
+              {FLAGS[l]}
             </button>
           ))}
         </div>
@@ -221,7 +243,7 @@ function AssistantPage() {
         {busy && (
           <div className="flex items-center gap-2 text-muted-foreground animate-pulse">
             <Bot className="h-4 w-4" />
-            <span>A pensar…</span>
+            <span>{t("thinking")}</span>
           </div>
         )}
         <div ref={bottomRef} />
@@ -229,7 +251,7 @@ function AssistantPage() {
 
       {isBlocked ? (
         <div className="mt-4 p-5 rounded-2xl bg-destructive/10 border-2 border-destructive/20 text-destructive text-center font-semibold animate-pulse text-lg shadow-sm">
-          Esta sessão de atendimento foi suspensa pelo administrador. Por favor, fale com um funcionário na loja para assistência presencial.
+          {t("session_blocked")}
         </div>
       ) : (
         <>
@@ -239,7 +261,7 @@ function AssistantPage() {
               disabled={busy}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ex: tenho uma torneira a pingar"
+              placeholder={t("placeholder")}
               className="flex-1 h-14 text-xl rounded-2xl px-5 border border-input bg-background focus:border-accent focus:ring-1 focus:ring-accent outline-none animate-[slide-up_0.2s_ease-out]"
             />
             <button
@@ -257,7 +279,7 @@ function AssistantPage() {
             className="mt-3 w-full kiosk-btn bg-destructive text-destructive-foreground py-4 text-xl font-semibold hover:scale-[1.01] transition-transform disabled:opacity-50 animate-[slide-up_0.3s_ease-out]"
           >
             <BellRing className="h-6 w-6 mr-2" />
-            {calling ? "A chamar..." : "Chamar funcionário"}
+            {calling ? t("calling") : t("call_staff")}
           </button>
         </>
       )}
@@ -267,7 +289,7 @@ function AssistantPage() {
         className="mt-2 w-full kiosk-btn bg-muted text-foreground border py-3 text-base font-medium hover:bg-muted/70 transition"
       >
         <LogOut className="h-5 w-5 mr-2" />
-        Terminar atendimento
+        {t("end_session")}
       </button>
 
       <AssistanceModal

@@ -8,7 +8,7 @@ import { useI18n, greetingFor } from "@/lib/i18n";
 import { useAccessibility } from "@/lib/useAccessibility";
 import DigitalSignage from "@/components/DigitalSignage";
 import QRCode from "@/components/QRCode";
-import type { Lang } from "@/lib/i18n";
+import { FLAGS, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -80,9 +80,9 @@ function Home() {
       {/* Top toolbar */}
       <div className="absolute top-4 right-4 flex items-center gap-2 text-xs z-10">
         {(["pt", "en", "es"] as Lang[]).map((l) => (
-          <button key={l} onClick={() => setLang(l)}
-            className={`px-2 py-1 rounded font-semibold transition ${lang === l ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}>
-            {l.toUpperCase()}
+          <button key={l} onClick={() => setLang(l)} title={l.toUpperCase()}
+            className={`px-2 py-1 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-white/20" : "text-white/50 hover:text-white/80"}`}>
+            {FLAGS[l]}
           </button>
         ))}
         <span className="text-white/20">|</span>
