@@ -8,6 +8,8 @@ import { CartProvider } from "@/lib/useCart";
 import { CartFAB } from "@/components/CartDrawer";
 import { FavoritesProvider } from "@/lib/useFavorites";
 import { FavoritesFAB } from "@/components/FavoritesDrawer";
+import { CompareProvider } from "@/lib/useCompare";
+import { CompareBar } from "@/components/CompareBar";
 
 export const Route = createFileRoute("/kiosk")({
   component: KioskLayout,
@@ -41,9 +43,12 @@ function KioskLayout() {
       <main className="flex-1 overflow-auto">
         <CartProvider>
           <FavoritesProvider>
-            <Outlet />
-            <CartFAB />
-            <FavoritesFAB />
+            <CompareProvider>
+              <Outlet />
+              <CartFAB />
+              <FavoritesFAB />
+              <CompareBar />
+            </CompareProvider>
           </FavoritesProvider>
         </CartProvider>
       </main>
