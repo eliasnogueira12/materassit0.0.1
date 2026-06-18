@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/format";
 import { Package, CheckCircle, Printer } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import QRCode from "@/components/QRCode";
+import { SatisfactionSurvey } from "@/components/SatisfactionSurvey";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/kiosk/invoice/$token")({
@@ -163,6 +164,10 @@ function Receipt({ order, items }: { order: any; items: any[] }) {
           </div>
         </div>
       )}
+
+      <div className="w-full max-w-md mt-6 no-print">
+        <SatisfactionSurvey orderId={order.id} />
+      </div>
     </div>
   );
 }

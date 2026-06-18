@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { getMostFavorited } from "@/lib/favorites.functions";
-import { Package, Wrench, CheckCircle2, XCircle, Users, Search, Bell, Heart } from "lucide-react";
+import { Package, Wrench, CheckCircle2, XCircle, Users, Search, Bell, Heart, Star, ThumbsUp, MessageSquareText } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -158,6 +158,35 @@ function Dashboard() {
     },
   });
 
+  const { data: satisfactionData = { total: 0, avg: 0, foundYes: 0, helpfulYes: 0, recent: [] } } = useQuery({
+    queryKey: ["admin", "satisfaction"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customer_history")
+        .select("payload")
+        .eq("event_type", "satisfaction")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      const ratings: number[] = [];
+      let foundYes = 0;
+      let helpfulYes = 0;
+      const recent: { rating: number; notes: string | null }[] = [];
+
+      for (const row of data ?? []) {
+        const p = row.payload as any;
+        if (p?.rating) ratings.push(Number(p.rating));
+        if (p?.found_product === true) foundYes++;
+        if (p?.assistant_helpful === true) helpfulYes++;
+        if (p?.notes && recent.length < 5) recent.push({ rating: Number(p.rating ?? 0), notes: p.notes });
+      }
+
+      const total = ratings.length;
+      const avg = total > 0 ? ratings.reduce((a, b) => a + b, 0) / total : 0;
+      return { total, avg, foundYes, helpfulYes, recent };
+    },
+  });
+
   const { data: assistanceByStatus = [] } = useQuery({
     queryKey: ["admin", "assistance-status"],
     queryFn: async () => {
@@ -204,10 +233,11 @@ function Dashboard() {
       </div>
 
       {/* Today's activity */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Stat icon={<Users />} label="Sessões hoje" value={today.sessions} />
         <Stat icon={<Search />} label="Pesquisas hoje" value={today.searches} />
         <Stat icon={<Bell />} label="Pedidos hoje" value={today.assistance} />
+        <Stat icon={<StarRating />} label="Satisfação (média)" value={satisfactionData.total > 0 ? satisfactionData.avg.toFixed(1) : undefined} />
       </div>
 
       {/* Charts row */}
@@ -339,6 +369,48 @@ function Dashboard() {
         )}
       </div>
 
+      {/* Satisfaction */}
+      <div className="bg-card border rounded-2xl p-5">
+        <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+          <Star className="h-5 w-5 text-amber-400 fill-amber-400" /> Satisfação dos clientes
+        </h2>
+        {satisfactionData.total === 0 ? (
+          <p className="text-muted-foreground">Nenhum feedback ainda.</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
+                <div className="text-2xl font-black text-amber-700">{satisfactionData.avg.toFixed(1)}</div>
+                <div className="text-xs text-amber-600 mt-0.5">Média ★</div>
+              </div>
+              <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
+                <div className="text-2xl font-black text-emerald-700">{satisfactionData.foundYes}/{satisfactionData.total}</div>
+                <div className="text-xs text-emerald-600 mt-0.5">Encontrou o que queria</div>
+              </div>
+              <div className="bg-sky-50 rounded-xl p-3 text-center border border-sky-200">
+                <div className="text-2xl font-black text-sky-700">{satisfactionData.helpfulYes}/{satisfactionData.total}</div>
+                <div className="text-xs text-sky-600 mt-0.5">Assistente útil</div>
+              </div>
+            </div>
+            {satisfactionData.recent.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                  <MessageSquareText className="h-3 w-3" /> Sugestões recentes
+                </p>
+                <div className="space-y-1.5">
+                  {satisfactionData.recent.map((r, i) => (
+                    <div key={i} className="bg-muted/50 rounded-lg px-3 py-2 text-xs text-foreground/80 border border-border/50">
+                      <span className="text-amber-500 font-bold mr-1.5">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                      {r.notes}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Recent changes */}
       <RecentChanges />
     </div>
@@ -379,7 +451,11 @@ function RecentChanges() {
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | undefined }) {
+function StarRating() {
+  return <Star className="h-5 w-5 text-amber-400 fill-amber-400" />;
+}
+
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string | undefined }) {
   return (
     <div className="bg-card border rounded-2xl p-5">
       <div className="text-accent">{icon}</div>

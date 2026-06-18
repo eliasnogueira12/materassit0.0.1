@@ -90,7 +90,8 @@ export type CustomerEvent =
   | "assistance"
   | "visit"
   | "product_view"
-  | "favorite";
+  | "favorite"
+  | "satisfaction";
 
 export async function logHistory(
   customer_id: string,
