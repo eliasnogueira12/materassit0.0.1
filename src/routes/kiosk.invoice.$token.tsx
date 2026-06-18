@@ -2,10 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getOrderByToken } from "@/lib/cart.functions";
 import { formatPrice } from "@/lib/format";
-import { Package, CheckCircle, Printer, Send, Mail } from "lucide-react";
+import { Package, CheckCircle, Printer } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { sendInvoiceEmail } from "@/lib/cart.functions";
-import { toast } from "sonner";
 import QRCode from "@/components/QRCode";
 import { useEffect, useRef, useState } from "react";
 
@@ -58,27 +56,9 @@ function InvoicePage() {
 function Receipt({ order, items }: { order: any; items: any[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [showQR, setShowQR] = useState(false);
-  const [sendEmail, setSendEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   const invoiceUrl = `${origin}${path}`;
-  const sendInvoice = useServerFn(sendInvoiceEmail);
-
-  async function handleSendEmail() {
-    if (!sendEmail.trim()) return;
-    setSending(true);
-    try {
-      await sendInvoice({ data: { token: order.token, email: sendEmail } });
-      setSent(true);
-      toast.success("Fatura enviada por email!");
-    } catch {
-      toast.error("Erro ao enviar email. Verifique o endereço.");
-    } finally {
-      setSending(false);
-    }
-  }
   const date = new Date(order.created_at).toLocaleDateString("pt-PT", {
     day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
@@ -183,37 +163,6 @@ function Receipt({ order, items }: { order: any; items: any[] }) {
           </div>
         </div>
       )}
-
-      <div className="mt-4 w-full max-w-md no-print">
-        <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-200">
-          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-3">
-            <Mail className="h-4 w-4" /> Enviar fatura por email
-          </h3>
-          {sent ? (
-            <p className="text-sm text-emerald-600 font-medium flex items-center gap-2">
-              <Send className="h-4 w-4" /> Fatura enviada com sucesso!
-            </p>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={sendEmail}
-                onChange={(e) => setSendEmail(e.target.value)}
-                placeholder="cliente@exemplo.pt"
-                className="flex-1 h-11 rounded-xl px-4 text-sm border border-gray-300 outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 transition"
-              />
-              <button
-                onClick={handleSendEmail}
-                disabled={sending || !sendEmail.trim()}
-                className="flex items-center gap-2 bg-gray-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-700 transition disabled:opacity-50 shrink-0"
-              >
-                <Send className="h-4 w-4" />
-                {sending ? "A enviar..." : "Enviar"}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

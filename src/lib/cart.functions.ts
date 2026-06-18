@@ -209,55 +209,6 @@ export const listOrders = createServerFn({ method: "GET" })
     return { orders: orders ?? [], total: count ?? 0 };
   });
 
-export const sendInvoiceEmail = createServerFn({ method: "POST" })
-  .inputValidator((d) =>
-    z.object({
-      token: z.string().min(1).max(20),
-      email: z.string().email(),
-    }).parse(d)
-  )
-  .handler(async ({ data }) => {
-    const origin = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "https://materassist.vercel.app";
-    const invoiceUrl = `${origin}/kiosk/invoice/${data.token}`;
-
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.RESEND_API_KEY ?? ""}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "MaterAssist <noreply@materassist.vercel.app>",
-          to: data.email,
-          subject: `Fatura MarquesMater — ${data.token}`,
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-              <h2 style="color:#1a1a2e;">Obrigado pela sua visita!</h2>
-              <p style="color:#555;">A sua fatura pré-paga está disponível no link abaixo:</p>
-              <a href="${invoiceUrl}" style="display:inline-block;background:#eab308;color:#000;padding:12px 24px;border-radius:12px;font-weight:bold;text-decoration:none;margin:16px 0;">
-                Ver Fatura
-              </a>
-              <p style="color:#888;font-size:12px;">MarquesMater · R. Sociedade Filarmónica, Ed. Estrada Nova, Louriçal</p>
-            </div>
-          `,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.text();
-        console.error("[sendInvoiceEmail] Resend error:", res.status, body);
-        throw new Error("Erro ao enviar email.");
-      }
-
-      return { success: true };
-    } catch {
-      throw new Error("Não foi possível enviar o email. Tente novamente mais tarde.");
-    }
-  });
-
 export const markOrderPaid = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
