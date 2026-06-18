@@ -17,8 +17,10 @@ import { Route as KioskStartRouteImport } from './routes/kiosk.start'
 import { Route as KioskSearchRouteImport } from './routes/kiosk.search'
 import { Route as KioskProblemsRouteImport } from './routes/kiosk.problems'
 import { Route as KioskIdentifyRouteImport } from './routes/kiosk.identify'
+import { Route as AdminQrcodesRouteImport } from './routes/admin.qrcodes'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminProblemsRouteImport } from './routes/admin.problems'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
@@ -26,6 +28,7 @@ import { Route as AdminAssistantRouteImport } from './routes/admin.assistant'
 import { Route as AdminAssistanceRouteImport } from './routes/admin.assistance'
 import { Route as KioskProductIdRouteImport } from './routes/kiosk.product.$id'
 import { Route as KioskProblemIdRouteImport } from './routes/kiosk.problem.$id'
+import { Route as KioskInvoiceTokenRouteImport } from './routes/kiosk.invoice.$token'
 
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
@@ -67,6 +70,11 @@ const KioskIdentifyRoute = KioskIdentifyRouteImport.update({
   path: '/identify',
   getParentRoute: () => KioskRoute,
 } as any)
+const AdminQrcodesRoute = AdminQrcodesRouteImport.update({
+  id: '/qrcodes',
+  path: '/qrcodes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -75,6 +83,11 @@ const AdminProductsRoute = AdminProductsRouteImport.update({
 const AdminProblemsRoute = AdminProblemsRouteImport.update({
   id: '/problems',
   path: '/problems',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -112,6 +125,11 @@ const KioskProblemIdRoute = KioskProblemIdRouteImport.update({
   path: '/problem/$id',
   getParentRoute: () => KioskRoute,
 } as any)
+const KioskInvoiceTokenRoute = KioskInvoiceTokenRouteImport.update({
+  id: '/invoice/$token',
+  path: '/invoice/$token',
+  getParentRoute: () => KioskRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -122,13 +140,16 @@ export interface FileRoutesByFullPath {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/qrcodes': typeof AdminQrcodesRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
   '/admin/': typeof AdminIndexRoute
+  '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
   '/kiosk/product/$id': typeof KioskProductIdRoute
 }
@@ -140,13 +161,16 @@ export interface FileRoutesByTo {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/qrcodes': typeof AdminQrcodesRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
   '/admin': typeof AdminIndexRoute
+  '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
   '/kiosk/product/$id': typeof KioskProductIdRoute
 }
@@ -160,13 +184,16 @@ export interface FileRoutesById {
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/qrcodes': typeof AdminQrcodesRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
   '/admin/': typeof AdminIndexRoute
+  '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
   '/kiosk/product/$id': typeof KioskProductIdRoute
 }
@@ -181,13 +208,16 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/customers'
     | '/admin/login'
+    | '/admin/orders'
     | '/admin/problems'
     | '/admin/products'
+    | '/admin/qrcodes'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
     | '/admin/'
+    | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
     | '/kiosk/product/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -199,13 +229,16 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/customers'
     | '/admin/login'
+    | '/admin/orders'
     | '/admin/problems'
     | '/admin/products'
+    | '/admin/qrcodes'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
     | '/admin'
+    | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
     | '/kiosk/product/$id'
   id:
@@ -218,13 +251,16 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/customers'
     | '/admin/login'
+    | '/admin/orders'
     | '/admin/problems'
     | '/admin/products'
+    | '/admin/qrcodes'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
     | '/admin/'
+    | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
     | '/kiosk/product/$id'
   fileRoutesById: FileRoutesById
@@ -293,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskIdentifyRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/admin/qrcodes': {
+      id: '/admin/qrcodes'
+      path: '/qrcodes'
+      fullPath: '/admin/qrcodes'
+      preLoaderRoute: typeof AdminQrcodesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products': {
       id: '/admin/products'
       path: '/products'
@@ -305,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/problems'
       fullPath: '/admin/problems'
       preLoaderRoute: typeof AdminProblemsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/login': {
@@ -356,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskProblemIdRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/kiosk/invoice/$token': {
+      id: '/kiosk/invoice/$token'
+      path: '/invoice/$token'
+      fullPath: '/kiosk/invoice/$token'
+      preLoaderRoute: typeof KioskInvoiceTokenRouteImport
+      parentRoute: typeof KioskRoute
+    }
   }
 }
 
@@ -365,8 +422,10 @@ interface AdminRouteChildren {
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProblemsRoute: typeof AdminProblemsRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminQrcodesRoute: typeof AdminQrcodesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -376,8 +435,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCustomersRoute: AdminCustomersRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminProblemsRoute: AdminProblemsRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminQrcodesRoute: AdminQrcodesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -388,6 +449,7 @@ interface KioskRouteChildren {
   KioskProblemsRoute: typeof KioskProblemsRoute
   KioskSearchRoute: typeof KioskSearchRoute
   KioskStartRoute: typeof KioskStartRoute
+  KioskInvoiceTokenRoute: typeof KioskInvoiceTokenRoute
   KioskProblemIdRoute: typeof KioskProblemIdRoute
   KioskProductIdRoute: typeof KioskProductIdRoute
 }
@@ -397,6 +459,7 @@ const KioskRouteChildren: KioskRouteChildren = {
   KioskProblemsRoute: KioskProblemsRoute,
   KioskSearchRoute: KioskSearchRoute,
   KioskStartRoute: KioskStartRoute,
+  KioskInvoiceTokenRoute: KioskInvoiceTokenRoute,
   KioskProblemIdRoute: KioskProblemIdRoute,
   KioskProductIdRoute: KioskProductIdRoute,
 }

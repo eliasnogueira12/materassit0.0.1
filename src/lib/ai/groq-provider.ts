@@ -1,10 +1,11 @@
 import { AIProvider, AIMessage } from "./types";
 
-export class OpenAIProvider implements AIProvider {
+export class GroqProvider implements AIProvider {
   private apiKey: string;
   private model: string;
+  private baseUrl = "https://api.groq.com/openai/v1/chat/completions";
 
-  constructor(apiKey: string, model = "gpt-4o-mini") {
+  constructor(apiKey: string, model = "llama-3.3-70b-versatile") {
     this.apiKey = apiKey;
     this.model = model;
   }
@@ -21,7 +22,7 @@ export class OpenAIProvider implements AIProvider {
       { role: "user", content: params.message },
     ];
 
-    const body: any = { model: this.model, messages };
+    const body: any = { model: this.model, messages, temperature: 0.7, max_tokens: 1024 };
     if (params.tools && params.tools.length > 0) body.tools = params.tools;
     if (stream) body.stream = true;
     return body;
@@ -33,50 +34,13 @@ export class OpenAIProvider implements AIProvider {
     history: AIMessage[];
     tools?: any[];
   }) {
-    const apiEndpoint = "https://api.openai.com/v1/chat/completions";
     const body = this.buildBody(params, false);
 
-    const res = await fetch(apiEndpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("[OpenAIProvider] API Error:", res.status, errorText);
-      throw new Error(`OpenAI API Error (${res.status}): ${errorText || res.statusText}`);
-    }
-
-    const json = await res.json();
-    const choice = json?.choices?.[0];
-    const reply = choice?.message?.content ?? "";
-    const toolCalls = choice?.message?.tool_calls ?? [];
-
-    return { reply, toolCalls };
-  }
-
-  async sendMessageStream(params: {
-    systemPrompt: string;
-    message: string;
-    history: AIMessage[];
-    tools?: any[];
-    onChunk: (chunk: string) => void;
-    onToolCalls?: (calls: any[]) => void;
-  }): Promise<string> {
-    const apiEndpoint = "https://api.openai.com/v1/chat/completions";
-    const body = this.buildBody(params, true);
-
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    let fullReply = "";
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
-      const res = await fetch(apiEndpoint, {
+      const res = await fetch(this.baseUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${this.apiKey}`,
@@ -90,7 +54,54 @@ export class OpenAIProvider implements AIProvider {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`OpenAI ${res.status}: ${errorText || res.statusText}`);
+        console.error("[GroqProvider] API Error:", res.status, errorText);
+        throw new Error(`Groq API Error (${res.status}): ${errorText || res.statusText}`);
+      }
+
+      const json = await res.json();
+      const choice = json?.choices?.[0];
+      const reply = choice?.message?.content ?? "";
+      const toolCalls = choice?.message?.tool_calls ?? [];
+
+      return { reply, toolCalls };
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") throw new Error("Groq timeout após 8s");
+      throw err;
+    }
+  }
+
+  async sendMessageStream(params: {
+    systemPrompt: string;
+    message: string;
+    history: AIMessage[];
+    tools?: any[];
+    onChunk: (chunk: string) => void;
+    onToolCalls?: (calls: any[]) => void;
+  }): Promise<string> {
+    const body = this.buildBody(params, true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let fullReply = "";
+
+    try {
+      const res = await fetch(this.baseUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Groq ${res.status}: ${errorText || res.statusText}`);
       }
 
       const reader = res.body?.getReader();
@@ -130,7 +141,7 @@ export class OpenAIProvider implements AIProvider {
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
-      if (err.name === "AbortError") throw new Error("OpenAI streaming timeout após 30s");
+      if (err.name === "AbortError") throw new Error("Groq streaming timeout após 30s");
       throw err;
     }
 

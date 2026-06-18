@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Bell, CheckCircle2, Hand, X, Clock, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAssistanceRequests, setRequestStatus, playChime } from "@/lib/assistance";
+import { useAssistanceRequests, playChime } from "@/lib/assistance";
+import { setRequestStatus } from "@/lib/assistant.functions";
 import type { AssistanceRequest } from "@/lib/assistance";
 
 export const Route = createFileRoute("/admin/assistance")({
@@ -25,15 +27,17 @@ function AssistancePage() {
       toast("Novo pedido de assistência", { icon: "🛎️" });
     },
   });
-
+  const setStatus = useServerFn(setRequestStatus);
   async function update(id: string, status: "accepted" | "refused" | "done") {
     try {
-      await setRequestStatus({ data: { id, status } });
+      await setStatus({ data: { id, status } });
       toast.success(
         status === "accepted" ? "Pedido aceite" : status === "refused" ? "Pedido recusado" : "Concluído",
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      console.error("[admin.assistance] update error:", e);
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e);
+      toast.error(msg);
     }
   }
 

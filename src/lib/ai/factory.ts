@@ -2,18 +2,14 @@ import { AIProvider } from "./types";
 import { GeminiProvider } from "./gemini-provider";
 import { OpenAIProvider } from "./openai-provider";
 import { ClaudeProvider } from "./claude-provider";
+import { GroqProvider } from "./groq-provider";
 
-/**
- * AI Provider Factory.
- * Determines the active provider (Gemini, OpenAI, or Claude) based on:
- * 1. AI_PROVIDER env variable (explicit override)
- * 2. Available API Keys (fallback cascade: Gemini -> OpenAI -> Claude)
- */
 export function getAIProvider(): AIProvider {
   const providerType = (process.env.AI_PROVIDER || "").toLowerCase().trim();
   const geminiApiKey = process.env.GEMINI_API_KEY || "";
   const openAiApiKey = process.env.OPENAI_API_KEY || "";
   const claudeApiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY || "";
+  const groqApiKey = process.env.GROQ_API_KEY || "";
 
   // 1) Explicit provider selection
   if (providerType === "gemini") {
@@ -34,10 +30,19 @@ export function getAIProvider(): AIProvider {
     }
     return new ClaudeProvider(claudeApiKey);
   }
+  if (providerType === "groq") {
+    if (!groqApiKey) {
+      throw new Error("Variável AI_PROVIDER definida para 'groq', mas GROQ_API_KEY não foi configurada.");
+    }
+    return new GroqProvider(groqApiKey);
+  }
 
   // 2) Automatic detection cascade
   if (geminiApiKey) {
     return new GeminiProvider(geminiApiKey);
+  }
+  if (groqApiKey) {
+    return new GroqProvider(groqApiKey);
   }
   if (openAiApiKey) {
     return new OpenAIProvider(openAiApiKey);

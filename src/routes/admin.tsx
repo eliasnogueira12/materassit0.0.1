@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, isRedirect, useNavigate, useRo
 import { useEffect, useState } from "react";
 import { useAdminSession } from "@/lib/use-admin-session";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Wrench, Tag, LogOut, Home, Bell, Sparkles, Users, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, Wrench, Tag, LogOut, Home, Bell, Sparkles, Users, Menu, X, FileText, QrCode } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAssistanceRequests, playChime } from "@/lib/assistance";
 import { toast } from "sonner";
@@ -117,8 +117,10 @@ function AdminLayout() {
     { to: "/admin/problems", label: "Problemas", icon: Wrench },
     { to: "/admin/categories", label: "Categorias", icon: Tag },
     { to: "/admin/customers", label: "Clientes", icon: Users },
+    { to: "/admin/orders", label: "Faturas", icon: FileText },
     { to: "/admin/assistant", label: "Assistente IA", icon: Sparkles },
     { to: "/admin/assistance", label: "Assistência", icon: Bell },
+    { to: "/admin/qrcodes", label: "QR Codes", icon: QrCode },
   ];
 
   return (

@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { useWakeLock, useIdleReset, useHideCursor, usePreventBack } from "@/lib/useKiosk";
 import { useI18n, greetingFor, FLAGS, type Lang } from "@/lib/i18n";
 import { useAccessibility } from "@/lib/useAccessibility";
+import { useCart } from "@/lib/useCart";
 import QRCode from "@/components/QRCode";
 
 function isStandalone() {
@@ -29,14 +30,20 @@ function AssistantPage() {
   const { customer, hydrated, setCustomer } = useCustomer();
   const { t, lang, setLang } = useI18n();
   const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility();
+  const cart = useCart();
   const sessionInitied = useRef(false);
   const standalone = useMemo(() => isStandalone(), []);
+  const refreshCartRef = useRef<() => Promise<void>>(async () => {});
+  refreshCartRef.current = () => cart.refresh();
 
   useEffect(() => {
     if (hydrated && !customer && !sessionInitied.current) {
       sessionInitied.current = true;
       createCustomer()
-        .then((c) => setCustomer(c))
+        .then((c) => {
+          setCustomer(c);
+          setTimeout(() => refreshCartRef.current(), 100);
+        })
         .catch((err) => console.error("[Chat] Erro ao criar sessão:", err));
     }
   }, [hydrated, customer, setCustomer]);
@@ -73,6 +80,42 @@ function AssistantPage() {
   const [farewell, setFarewell] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
+  const revealRef = useRef<{ text: string; idx: number; timer: ReturnType<typeof setInterval> | null }>({
+    text: "", idx: 0, timer: null,
+  });
+
+  useEffect(() => {
+    return () => { if (revealRef.current.timer) clearInterval(revealRef.current.timer); };
+  }, []);
+
+  function revealText(fullText: string, msPerChar: number, onDone?: () => void) {
+    const r = revealRef.current;
+    if (r.timer) clearInterval(r.timer);
+    r.text = fullText;
+    r.idx = 0;
+    setMessages((m) => {
+      if (m.length > 0 && m[m.length - 1].role === "assistant" && m[m.length - 1].content === "" && !m[m.length - 1].products) return m;
+      return [...m, { role: "assistant", content: "" }];
+    });
+    r.timer = setInterval(() => {
+      r.idx += 1;
+      const shown = r.text.slice(0, r.idx);
+      setMessages((m) => {
+        const next = [...m];
+        const last = next[next.length - 1];
+        if (last && last.role === "assistant" && !last.products) {
+          next[next.length - 1] = { ...last, content: shown };
+        }
+        return next;
+      });
+      if (r.idx >= r.text.length && r.timer) {
+        clearInterval(r.timer);
+        r.timer = null;
+        onDone?.();
+      }
+    }, msPerChar);
+  }
+
   useWakeLock();
   useIdleReset(!standalone);
   useHideCursor(!standalone);
@@ -106,6 +149,12 @@ function AssistantPage() {
     }, 2200);
   }
 
+  const alreadyRecommended = useMemo(() => {
+    const ids = new Set<string>();
+    messages.forEach((m) => m.products?.forEach((p) => ids.add(p.id)));
+    return Array.from(ids);
+  }, [messages]);
+
   async function send() {
     const q = text.trim();
     if (!q || busy) return;
@@ -114,9 +163,29 @@ function AssistantPage() {
     setBusy(true);
     if (customer) logHistory(customer.id, "search", { query: q });
     try {
-      const history = messages.slice(-10).map(({ role, content }) => ({ role, content }));
-      const { reply, products } = await ask({ data: { message: q, history } });
-      setMessages((m) => [...m, { role: "assistant", content: reply, products }]);
+      const history = messages.slice(-10).filter((m) => m.content.trim()).map(({ role, content }) => ({ role, content }));
+      const { reply, products, addToCart } = await ask({ data: { message: q, history, skipProductIds: alreadyRecommended } });
+
+      if (addToCart && addToCart.length > 0) {
+        for (const item of addToCart) {
+          try {
+            await cart.addProduct(item.productId, item.name, item.price, item.location);
+          } catch { /* silent */ }
+        }
+        await cart.refresh();
+      }
+
+      const speed = Math.max(8, Math.min(25, Math.floor(reply.length / 50)));
+      revealText(reply, speed, () => {
+        setMessages((m) => {
+          const next = [...m];
+          const last = next[next.length - 1];
+          if (last && last.role === "assistant" && last.products === undefined) {
+            next[next.length - 1] = { ...last, products };
+          }
+          return next;
+        });
+      });
       if (customer)
         logHistory(customer.id, "recommendation", {
           reply: reply.slice(0, 200),
@@ -233,7 +302,7 @@ function AssistantPage() {
               <div className="ml-13 pl-13">
                 <div className="grid sm:grid-cols-2 gap-3">
                   {m.products.map((p) => (
-                    <ProductCard key={p.id} product={p} />
+                    <ProductCard key={p.id} product={p} showAddToCart />
                   ))}
                 </div>
               </div>

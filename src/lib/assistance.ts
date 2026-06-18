@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { playChime } from "@/lib/format";
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 
 export type AssistanceRequest = {
   id: string;
@@ -77,25 +75,5 @@ export function useAssistanceRequests(options?: { onNew?: () => void }) {
 
   return { items, loading, refresh };
 }
-
-export const setRequestStatus = createServerFn({ method: "POST" })
-  .inputValidator((d: any) => {
-    const payload = d?.data !== undefined ? d.data : d;
-    return z
-      .object({
-        id: z.string(),
-        status: z.enum(["accepted", "refused", "done", "expired", "attending"]),
-      })
-      .parse(payload);
-  })
-  .handler(async ({ data }) => {
-    const { id, status } = data;
-    const patch: Record<string, unknown> = { status };
-    if (status === "accepted") patch.accepted_at = new Date().toISOString();
-    if (status === "done") patch.resolved_at = new Date().toISOString();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("assistance_requests").update(patch as any).eq("id", id);
-    if (error) throw error;
-  })
 
 export { playChime };

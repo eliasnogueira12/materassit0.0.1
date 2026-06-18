@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, X, Scan, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { formatPrice } from "@/lib/format";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { lookupBarcode } from "@/lib/barcode.functions";
 
 export const Route = createFileRoute("/admin/products")({
   component: AdminProducts,
@@ -40,6 +42,7 @@ type ProductRow = {
   promotion_price: number | null;
   promotion_active: boolean;
   featured: boolean;
+  barcode: string | null;
 };
 
 function AdminProducts() {
@@ -55,7 +58,7 @@ function AdminProducts() {
       if (q.trim()) {
         const t = `%${q.trim()}%`;
         query = query.or(
-          `name.ilike.${t},category.ilike.${t},keywords.ilike.${t},internal_code.ilike.${t}`,
+          `name.ilike.${t},category.ilike.${t},keywords.ilike.${t},internal_code.ilike.${t},barcode.ilike.${t}`,
         );
       }
       const { data, error } = await query;
@@ -249,6 +252,8 @@ function ProductDialog({
   const [busy, setBusy] = useState(false);
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
 
   const { data: dbCategories = [] } = useQuery({
     queryKey: ["admin", "categories-product-list"],
@@ -347,6 +352,7 @@ function ProductDialog({
       promotion_price: toNum(form.promotion_price),
       promotion_active: form.promotion_active ?? false,
       featured: form.featured ?? false,
+      barcode: form.barcode?.trim() || null,
     };
     const { error } = form.id
       ? await supabase.from("products").update(payload).eq("id", form.id)
@@ -381,6 +387,57 @@ function ProductDialog({
               placeholder="PAR-M8"
             />
           </div>
+          <div>
+            <Label>Código de barras</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                value={form.barcode ?? ""}
+                onChange={(e) => set("barcode", e.target.value)}
+                placeholder="5901234123457"
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={() => setShowScanner(true)}
+                title="Ler código de barras com câmara"
+              >
+                <Scan className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <BarcodeScanner
+            open={showScanner}
+            onDetected={async (code) => {
+              set("barcode", code);
+              setShowScanner(false);
+              setLookingUp(true);
+              try {
+                const result = await lookupBarcode({ barcode: code });
+                if (result?.name && !form.name) {
+                  set("name", result.name);
+                }
+                if (result?.category && !form.category) {
+                  set("category", result.category);
+                }
+                if (result?.description && !form.description) {
+                  set("description", result.description);
+                }
+                if (result?.image && !form.image_url) {
+                  set("image_url", result.image);
+                }
+                if (result?.name) {
+                  toast.success("Produto encontrado na base de dados global");
+                }
+              } catch {
+                /* lookup failed, admin fills manually */
+              } finally {
+                setLookingUp(false);
+              }
+            }}
+            onClose={() => setShowScanner(false)}
+          />
           <div>
             <Label>Categoria</Label>
             {showCustomCategory ? (
