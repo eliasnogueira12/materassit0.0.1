@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Wrench, CheckCircle2, XCircle, Users, Search, Bell } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { getMostFavorited } from "@/lib/favorites.functions";
+import { Package, Wrench, CheckCircle2, XCircle, Users, Search, Bell, Heart } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -143,6 +145,16 @@ function Dashboard() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([query, count]) => ({ query, count }));
+    },
+  });
+
+  const getMostFav = useServerFn(getMostFavorited);
+
+  const { data: topFavorites = [] } = useQuery({
+    queryKey: ["admin", "top-favorites"],
+    queryFn: async () => {
+      const res = await getMostFav({ data: {} as any });
+      return res;
     },
   });
 
@@ -298,6 +310,33 @@ function Dashboard() {
           </div>
         )}
       </div>
+      </div>
+
+      {/* Top favorites */}
+      <div className="bg-card border rounded-2xl p-5">
+        <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+          <Heart className="h-5 w-5 text-pink-500" /> Produtos favoritos
+        </h2>
+        {topFavorites.length === 0 ? (
+          <p className="text-muted-foreground">Sem favoritos ainda.</p>
+        ) : (
+          <div className="space-y-2">
+            {topFavorites.map((item, i) => (
+              <div key={item.id} className="flex items-center gap-3">
+                <span className="text-xs font-mono text-muted-foreground w-5 text-right">{i + 1}.</span>
+                <div className="flex-1 bg-muted rounded-full h-7 overflow-hidden">
+                  <div
+                    className="h-full bg-pink-400/80 text-white text-xs flex items-center px-3 font-medium"
+                    style={{ width: `${Math.max(5, (item.count / topFavorites[0].count) * 100)}%` }}
+                  >
+                    {item.name}
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-muted-foreground w-8 text-right">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Recent changes */}

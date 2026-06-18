@@ -4,6 +4,10 @@ import { useKioskIdle } from "@/lib/kiosk-idle";
 import { Logo } from "@/components/Logo";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { clearKioskSession } from "@/lib/customer";
+import { CartProvider } from "@/lib/useCart";
+import { CartFAB } from "@/components/CartDrawer";
+import { FavoritesProvider } from "@/lib/useFavorites";
+import { FavoritesFAB } from "@/components/FavoritesDrawer";
 
 export const Route = createFileRoute("/kiosk")({
   component: KioskLayout,
@@ -35,7 +39,13 @@ function KioskLayout() {
         </nav>
       </header>
       <main className="flex-1 overflow-auto">
-        <Outlet />
+        <CartProvider>
+          <FavoritesProvider>
+            <Outlet />
+            <CartFAB />
+            <FavoritesFAB />
+          </FavoritesProvider>
+        </CartProvider>
       </main>
 
       <Dialog open={warning} onOpenChange={(o) => !o && dismiss()}>

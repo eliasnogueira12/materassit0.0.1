@@ -2,9 +2,10 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, ShoppingCart, Tag, Package, Minus, Plus } from "lucide-react";
+import { MapPin, ShoppingCart, Tag, Package, Minus, Plus, Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/useCart";
+import { useFavorites } from "@/lib/useFavorites";
 import { ProductCard } from "@/components/ProductCard";
 import { useCustomer, logHistory } from "@/lib/customer";
 import type { RecommendedProduct } from "@/lib/assistant.functions";
@@ -32,6 +33,7 @@ function ProductDetail() {
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const { customer } = useCustomer();
+  const { favoriteIds, toggle } = useFavorites();
 
   const { data, isLoading } = useQuery({
     queryKey: ["product", id],
@@ -200,23 +202,38 @@ function ProductDetail() {
 
           {/* CTA area */}
           <div className="mt-8 space-y-4">
-            {/* Location */}
-            <div className="bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
-                <MapPin className="h-4 w-4 text-accent" /> Localização na loja
-              </h3>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-background/60 rounded-xl p-2.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Secção</div>
-                  <div className="text-lg font-bold text-primary">{p.section || "—"}</div>
-                </div>
-                <div className="bg-background/60 rounded-xl p-2.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Corredor</div>
-                  <div className="text-lg font-bold text-primary">{p.aisle || "—"}</div>
-                </div>
-                <div className="bg-background/60 rounded-xl p-2.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Prateleira</div>
-                  <div className="text-lg font-bold text-primary">{p.shelf || "—"}</div>
+            {/* Favorite + Location row */}
+            <div className="flex items-stretch gap-3">
+              <button
+                onClick={() => toggle(p.id, p.name)}
+                className={`kiosk-btn h-16 w-16 rounded-2xl border-2 flex items-center justify-center transition shrink-0 ${
+                  (favoriteIds.has(p.id))
+                    ? "bg-pink-50 border-pink-300 text-pink-500"
+                    : "bg-card border-border text-muted-foreground hover:border-pink-300"
+                }`}
+              >
+                <Heart
+                  className="h-7 w-7"
+                  fill={(favoriteIds.has(p.id)) ? "currentColor" : "none"}
+                />
+              </button>
+              <div className="flex-1 bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
+                  <MapPin className="h-4 w-4 text-accent" /> Localização na loja
+                </h3>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-background/60 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Secção</div>
+                    <div className="text-lg font-bold text-primary">{p.section || "—"}</div>
+                  </div>
+                  <div className="bg-background/60 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Corredor</div>
+                    <div className="text-lg font-bold text-primary">{p.aisle || "—"}</div>
+                  </div>
+                  <div className="bg-background/60 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Prateleira</div>
+                    <div className="text-lg font-bold text-primary">{p.shelf || "—"}</div>
+                  </div>
                 </div>
               </div>
             </div>
