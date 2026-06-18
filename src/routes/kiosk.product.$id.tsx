@@ -2,15 +2,14 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, ShoppingCart, Tag, Package, Minus, Plus, Heart, LayoutGrid } from "lucide-react";
+import { MapPin, ShoppingCart, Package, Minus, Plus, Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/useCart";
 import { useFavorites } from "@/lib/useFavorites";
 import { ProductCard } from "@/components/ProductCard";
 import { useCustomer, logHistory } from "@/lib/customer";
 import type { RecommendedProduct } from "@/lib/assistant.functions";
-import { ProductViewer3D } from "@/components/ProductViewer3D";
-import { RoomScene } from "@/components/RoomScene";
+import { ProductImageFloating } from "@/components/ProductImageFloating";
 
 export const Route = createFileRoute("/kiosk/product/$id")({
   component: ProductDetail,
@@ -32,8 +31,6 @@ function ProductDetail() {
   const router = useRouter();
   const { addProduct, adding } = useCart();
   const [qty, setQty] = useState(1);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [showRoom, setShowRoom] = useState(false);
 
   const { customer } = useCustomer();
   const { favoriteIds, toggle } = useFavorites();
@@ -123,20 +120,13 @@ function ProductDetail() {
       {/* Main card */}
       <div className="grid md:grid-cols-2 gap-8 bg-card border rounded-3xl p-4 md:p-8 shadow-lg animate-fade-in">
         {/* Image */}
-        <div className="space-y-3">
-          <ProductViewer3D
+        <div>
+          <ProductImageFloating
             imageUrl={p.image_url}
             alt={p.name}
             promo={showPromo}
             outOfStock={outOfStock}
           />
-          <button
-            onClick={() => setShowRoom(true)}
-            className="w-full kiosk-btn bg-accent/10 hover:bg-accent/20 text-accent-foreground font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 border border-accent/20 transition"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            Ver na sala virtual
-          </button>
         </div>
 
         {/* Info */}
@@ -281,11 +271,6 @@ function ProductDetail() {
         </section>
       )}
 
-      <RoomScene
-        open={showRoom}
-        onClose={() => setShowRoom(false)}
-        products={[data, ...related].filter(Boolean).map((x: any) => ({ id: x.id, name: x.name, image_url: x.image_url }))}
-      />
     </div>
   );
 }

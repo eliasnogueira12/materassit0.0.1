@@ -275,8 +275,6 @@ function SearchPage() {
             parents={structure.parents}
             products={parsedProducts}
             onSelect={setSelectedParent}
-            icon={catIcon}
-            gradient={catGradient}
           />
         )}
       </div>
@@ -286,33 +284,48 @@ function SearchPage() {
 
 /* ─── sub-components ─── */
 
-function CategoryGrid({ parents, products, onSelect, icon, gradient }: {
+function CategoryGrid({ parents, products, onSelect }: {
   parents: string[];
   products: any[];
   onSelect: (p: string) => void;
-  icon: (p: string) => React.ReactNode;
-  gradient: (p: string) => string;
 }) {
+  function catImage(pName: string): string | null {
+    const prod = products.find(p => p.parsedCat.parent === pName && p.image_url);
+    return prod?.image_url ?? null;
+  }
   return (
     <div className="animate-fade-in">
       <h2 className="text-2xl font-bold text-primary mb-6">Categorias</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
         {parents.map(pName => {
           const count = products.filter(p => p.parsedCat.parent === pName).length;
+          const img = catImage(pName);
           return (
             <button
               key={pName}
               onClick={() => onSelect(pName)}
-              className="group relative bg-card border border-border/70 rounded-3xl p-7 flex flex-col items-center text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+              className="group relative bg-card border border-border/70 rounded-3xl overflow-hidden hover:scale-[1.03] hover:shadow-lg transition-all duration-300 cursor-pointer text-left"
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${gradient(pName)} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
-              <div className="relative h-20 w-20 rounded-2xl bg-muted/70 group-hover:bg-background/80 flex items-center justify-center mb-4 transition-all duration-300 shadow-sm group-hover:shadow-md">
-                {icon(pName)}
+              <div className="aspect-[4/3] relative bg-muted">
+                {img ? (
+                  <img
+                    src={img}
+                    alt={pName}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
+                    <Package className="h-16 w-16" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <span className="font-extrabold text-xl text-white drop-shadow-lg">{pName}</span>
+                  <span className="block mt-1 text-xs text-white/80 font-medium">
+                    {count} {count === 1 ? "produto" : "produtos"}
+                  </span>
+                </div>
               </div>
-              <span className="relative font-extrabold text-xl text-primary">{pName}</span>
-              <span className="relative mt-2 text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground font-medium">
-                {count} {count === 1 ? "produto" : "produtos"}
-              </span>
             </button>
           );
         })}
@@ -328,6 +341,10 @@ function Subcategories({ parent, products, subs, onBack, onSelect }: {
   onBack: () => void;
   onSelect: (s: string) => void;
 }) {
+  function subImage(sub: string): string | null {
+    const prod = products.find(p => p.parsedCat.parent === parent && p.parsedCat.sub === sub && p.image_url);
+    return prod?.image_url ?? null;
+  }
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
@@ -342,16 +359,33 @@ function Subcategories({ parent, products, subs, onBack, onSelect }: {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {subs.map(sub => {
           const count = products.filter(p => p.parsedCat.parent === parent && p.parsedCat.sub === sub).length;
+          const img = subImage(sub);
           return (
             <button
               key={sub}
               onClick={() => onSelect(sub)}
-              className="group bg-card border border-border/60 hover:border-accent rounded-2xl p-6 flex flex-col items-start hover:scale-[1.02] hover:shadow-md transition-all duration-200 text-left cursor-pointer"
+              className="group bg-card border border-border/60 hover:border-accent rounded-2xl overflow-hidden hover:scale-[1.02] hover:shadow-md transition-all duration-200 text-left cursor-pointer"
             >
-              <span className="font-bold text-lg text-primary group-hover:text-accent transition-colors">{sub}</span>
-              <span className="text-xs text-muted-foreground mt-2 bg-muted px-2.5 py-0.5 rounded-full font-medium">
-                {count} {count === 1 ? "produto" : "produtos"}
-              </span>
+              <div className="aspect-[16/9] relative bg-muted">
+                {img ? (
+                  <img
+                    src={img}
+                    alt={sub}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
+                    <Package className="h-10 w-10" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <span className="font-bold text-white drop-shadow-lg">{sub}</span>
+                  <span className="block mt-0.5 text-xs text-white/70 font-medium">
+                    {count} {count === 1 ? "produto" : "produtos"}
+                  </span>
+                </div>
+              </div>
             </button>
           );
         })}

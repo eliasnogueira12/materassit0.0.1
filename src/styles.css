@@ -149,3 +149,18 @@
   box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--brand) 40%, transparent);
 }
 .kiosk-btn:active { transform: scale(0.98); }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
+}
