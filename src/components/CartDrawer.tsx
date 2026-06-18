@@ -30,7 +30,6 @@ export function CartFAB() {
 function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { items, subtotal, updateQty, removeItem, checkout, loading } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
-  const [email, setEmail] = useState("");
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +45,7 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   async function handleCheckout() {
     setCheckingOut(true);
     try {
-      const result = await checkout(email || undefined);
+      const result = await checkout();
       if (result) {
         onClose();
         navigate({ to: "/kiosk/invoice/$token", params: { token: result.token } });
@@ -95,19 +94,19 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
                   )}
                   <p className="text-sm font-bold text-accent mt-1">{formatPrice(Number(item.price))}</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   <button
                     onClick={() => item.quantity > 1 ? updateQty(item.id, item.quantity - 1) : removeItem(item.id)}
-                    className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition"
+                    className="kiosk-btn h-14 w-14 rounded-full border-2 flex items-center justify-center hover:bg-muted transition text-xl"
                   >
-                    {item.quantity > 1 ? <Minus className="h-4 w-4" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                    {item.quantity > 1 ? <Minus className="h-6 w-6" /> : <Trash2 className="h-6 w-6 text-destructive" />}
                   </button>
-                  <span className="w-8 text-center font-bold text-lg">{item.quantity}</span>
+                  <span className="w-10 text-center font-extrabold text-2xl">{item.quantity}</span>
                   <button
                     onClick={() => updateQty(item.id, item.quantity + 1)}
-                    className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition"
+                    className="kiosk-btn h-14 w-14 rounded-full border-2 flex items-center justify-center hover:bg-muted transition text-xl"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-6 w-6" />
                   </button>
                 </div>
               </div>
@@ -121,26 +120,16 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-extrabold text-2xl text-primary">{formatPrice(subtotal)}</span>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium">Email para envio da fatura (opcional)</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="cliente@exemplo.pt"
-                className="w-full mt-1 h-11 rounded-xl px-4 text-base border border-input bg-background outline-none focus:border-accent focus:ring-1 focus:ring-accent transition"
-              />
-            </div>
             <p className="text-xs text-muted-foreground text-center">
               IVA incluído. Pague no balcão e levante os produtos.
             </p>
             <button
               onClick={handleCheckout}
               disabled={checkingOut}
-              className="w-full kiosk-btn bg-accent text-accent-foreground py-4 text-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full kiosk-btn bg-accent text-accent-foreground py-5 text-xl font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 rounded-xl"
             >
               {checkingOut ? "A gerar fatura..." : "Finalizar Pedido"}
-              <ArrowRight className="h-5 w-5" />
+              <ArrowRight className="h-6 w-6" />
             </button>
           </div>
         )}

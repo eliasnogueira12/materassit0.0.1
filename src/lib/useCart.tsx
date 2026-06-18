@@ -33,7 +33,7 @@ interface CartCtx {
   addProduct: (productId: string, productName: string, price: number, location?: string | null, qty?: number) => Promise<void>;
   updateQty: (itemId: string, qty: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
-  checkout: (contactEmail?: string) => Promise<{ token: string; total: number } | null>;
+  checkout: () => Promise<{ token: string; total: number } | null>;
   refresh: () => Promise<void>;
 }
 
@@ -116,9 +116,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [order, removeFn, refresh]);
 
-  const checkout = useCallback(async (contactEmail?: string) => {
+  const checkout = useCallback(async () => {
     if (!order) return null;
-    const result = await checkoutFn({ data: { orderId: order.id, contactEmail: contactEmail ?? "" } });
+    const result = await checkoutFn({ data: { orderId: order.id, contactEmail: "" } });
     setOrder(prev => prev ? { ...prev, status: "invoice_issued", total: result.total } : null);
     setItems([]);
     return { token: result.token, total: result.total };
