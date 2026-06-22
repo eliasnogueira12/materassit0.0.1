@@ -1,4 +1,4 @@
-import { MapPin, Tag, Package, ImageOff, Eye, ShoppingCart, Plus, Heart, ArrowLeftRight } from "lucide-react";
+import { MapPin, ImageOff, Eye, ShoppingCart, Heart, ArrowLeftRight } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import type { RecommendedProduct } from "@/lib/assistant.functions";
 import { useCart } from "@/lib/useCart";

@@ -7,6 +7,7 @@ import { clearKioskSession } from "@/lib/customer";
 import { useFullscreen, useWakeLock } from "@/lib/useKiosk";
 import { useI18n, greetingFor, FLAGS, type Lang } from "@/lib/i18n";
 import { useAccessibility } from "@/lib/useAccessibility";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,6 +29,18 @@ function Home() {
   const tapCount = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  const [phrases, setPhrases] = useState<Record<string, string> | null>(null);
+
+  useEffect(() => {
+    supabase.from("settings").select("value").eq("key", "phrases").maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          const all = data.value as Record<string, Record<string, string>>;
+          setPhrases(all[lang] || all["pt"] || null);
+        }
+      }, () => {});
+  }, [lang]);
+
   const fs = useFullscreen();
   useWakeLock();
 
@@ -47,6 +60,9 @@ function Home() {
     }
   }
 
+  const welcome = phrases?.welcome || t("welcome");
+  const subtitle = phrases?.subtitle || t("subtitle");
+
   return (
     <main className="relative min-h-screen overflow-hidden text-primary-foreground">
       <YouTubeShowcase background />
@@ -57,10 +73,10 @@ function Home() {
         </button>
         <p className="text-2xl md:text-3xl opacity-90 mb-2 min-h-[2.25rem]">{greetingFor(new Date(), lang)}!</p>
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-          {t("welcome")}
+          {welcome}
         </h1>
         <p className="mt-4 text-xl md:text-2xl opacity-80 max-w-2xl">
-          {t("subtitle")}
+          {subtitle}
         </p>
 
         <Link

@@ -17,6 +17,7 @@ import { Route as KioskStartRouteImport } from './routes/kiosk.start'
 import { Route as KioskSearchRouteImport } from './routes/kiosk.search'
 import { Route as KioskProblemsRouteImport } from './routes/kiosk.problems'
 import { Route as KioskIdentifyRouteImport } from './routes/kiosk.identify'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminQrcodesRouteImport } from './routes/admin.qrcodes'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminProblemsRouteImport } from './routes/admin.problems'
@@ -69,6 +70,11 @@ const KioskIdentifyRoute = KioskIdentifyRouteImport.update({
   id: '/identify',
   path: '/identify',
   getParentRoute: () => KioskRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminQrcodesRoute = AdminQrcodesRouteImport.update({
   id: '/qrcodes',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/admin/problems': typeof AdminProblemsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/admin/problems'
     | '/admin/products'
     | '/admin/qrcodes'
+    | '/admin/settings'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/admin/problems'
     | '/admin/products'
     | '/admin/qrcodes'
+    | '/admin/settings'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/admin/problems'
     | '/admin/products'
     | '/admin/qrcodes'
+    | '/admin/settings'
     | '/kiosk/identify'
     | '/kiosk/problems'
     | '/kiosk/search'
@@ -328,6 +340,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/identify'
       preLoaderRoute: typeof KioskIdentifyRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/qrcodes': {
       id: '/admin/qrcodes'
@@ -426,6 +445,7 @@ interface AdminRouteChildren {
   AdminProblemsRoute: typeof AdminProblemsRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminQrcodesRoute: typeof AdminQrcodesRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -439,6 +459,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProblemsRoute: AdminProblemsRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminQrcodesRoute: AdminQrcodesRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

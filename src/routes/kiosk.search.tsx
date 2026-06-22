@@ -48,17 +48,6 @@ function catColor(parent: string): string {
   return "slate";
 }
 
-function catGradient(parent: string): string {
-  const m: Record<string, string> = {
-    emerald: "from-emerald-500/20 via-emerald-500/5 to-transparent",
-    amber: "from-amber-500/20 via-amber-500/5 to-transparent",
-    sky: "from-sky-500/20 via-sky-500/5 to-transparent",
-    blue: "from-blue-500/20 via-blue-500/5 to-transparent",
-    slate: "from-slate-500/20 via-slate-500/5 to-transparent",
-  };
-  return m[catColor(parent)] ?? m.slate;
-}
-
 function catIcon(parent: string, cls = "h-10 w-10") {
   const c = catColor(parent);
   const colorMap: Record<string, string> = {

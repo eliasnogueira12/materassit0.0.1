@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { products, remove, clear } = useCompare();
+  const { products, remove } = useCompare();
   const { addProduct, adding } = useCart();
 
   if (products.length === 0) return null;

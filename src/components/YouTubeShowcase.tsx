@@ -1,11 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Video {
-  id: string;
-  title: string;
-}
-
-const VIDEOS: Video[] = [
+const DEFAULT_VIDEOS = [
   { id: "_rWPvpP1jmU", title: "Lavadoras de alta pressão WR - Vito Pro-Power" },
   { id: "l2PQO8Sg-y0", title: "Rebarbadoras RAD / RADPRO - Vito" },
 ];
@@ -16,10 +12,21 @@ function embedUrl(id: string) {
 }
 
 export function YouTubeShowcase({ background }: { background?: boolean }) {
+  const [videos, setVideos] = useState<{ id: string; title: string }[]>(DEFAULT_VIDEOS);
   const [failed, setFailed] = useState<Set<string>>(new Set());
 
+  useEffect(() => {
+    supabase.from("settings").select("value").eq("key", "videos").maybeSingle()
+      .then(({ data }) => {
+        if (data?.value && Array.isArray(data.value)) {
+          const ids = data.value as string[];
+          setVideos(ids.map((id: string) => ({ id, title: id })));
+        }
+      }, () => {});
+  }, []);
+
   if (background) {
-    const activeVideo = VIDEOS.find((v) => !failed.has(v.id));
+    const activeVideo = videos.find((v) => !failed.has(v.id));
     return (
       <div className="fixed inset-0 z-0 bg-gradient-to-br from-[#1a1a2e] to-[#0f3460]">
         {activeVideo && (
@@ -45,7 +52,7 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
         Produtos em destaque
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {VIDEOS.map((video) =>
+        {videos.map((video) =>
           failed.has(video.id) ? null : (
             <div
               key={video.id}
