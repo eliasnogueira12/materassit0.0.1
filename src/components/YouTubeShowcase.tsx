@@ -14,8 +14,10 @@ function embedUrl(id: string) {
 export function YouTubeShowcase({ background }: { background?: boolean }) {
   const [videos, setVideos] = useState<{ id: string; title: string }[]>(DEFAULT_VIDEOS);
   const [failed, setFailed] = useState<Set<string>>(new Set());
+  const [theme, setTheme] = useState({ gradientFrom: "#1a1a2e", gradientTo: "#0f3460" });
 
   useEffect(() => {
+    // Fetch videos
     supabase.from("settings").select("value").eq("key", "videos").maybeSingle()
       .then(({ data }) => {
         if (data?.value && Array.isArray(data.value)) {
@@ -23,12 +25,29 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
           setVideos(ids.map((id: string) => ({ id, title: id })));
         }
       }, () => {});
+
+    // Fetch theme
+    supabase.from("settings").select("value").eq("key", "theme").maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          const t = data.value as any;
+          setTheme({
+            gradientFrom: t.gradientFrom || "#1a1a2e",
+            gradientTo: t.gradientTo || "#0f3460"
+          });
+        }
+      }, () => {});
   }, []);
 
   if (background) {
     const activeVideo = videos.find((v) => !failed.has(v.id));
     return (
-      <div className="fixed inset-0 z-0 bg-gradient-to-br from-[#1a1a2e] to-[#0f3460]">
+      <div 
+        className="fixed inset-0 z-0 transition-colors duration-500"
+        style={{
+          background: `linear-gradient(to bottom right, ${theme.gradientFrom}, ${theme.gradientTo})`
+        }}
+      >
         {activeVideo && (
           <iframe
             key={activeVideo.id}
