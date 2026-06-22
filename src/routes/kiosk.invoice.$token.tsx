@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getOrderByToken } from "@/lib/cart.functions";
 import { formatPrice } from "@/lib/format";
-import { Package, CheckCircle, Printer } from "lucide-react";
+import { Package, CheckCircle, Printer, Download } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import QRCode from "@/components/QRCode";
 import { SatisfactionSurvey } from "@/components/SatisfactionSurvey";
@@ -57,6 +57,7 @@ function InvoicePage() {
 function Receipt({ order, items }: { order: { id: string; token: string; total: number; created_at: string; status: string }; items: { id: string; product_name: string; quantity: number; price: number; location: string | null }[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [showQR, setShowQR] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   const invoiceUrl = `${origin}${path}`;
@@ -66,6 +67,97 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
   const subtotal = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
   const total = Number(order.total);
   const tax = total - subtotal;
+
+  useEffect(() => {
+    setIsMobile(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+  }, []);
+
+  function handleDownload() {
+    const html = `
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fatura #${order.token}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; color: #1f2937; }
+    .header { background: #111827; color: white; padding: 24px; text-align: center; border-radius: 12px 12px 0 0; }
+    .header h1 { margin: 0; font-size: 20px; }
+    .header p { margin: 4px 0 0; opacity: 0.7; font-size: 12px; }
+    .body { padding: 20px; }
+    .meta { display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px dashed #e5e7eb; margin-bottom: 16px; }
+    .meta-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; }
+    .meta-value { font-weight: 700; font-family: monospace; }
+    .item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+    .item-name { font-weight: 600; }
+    .item-detail { font-size: 11px; color: #6b7280; }
+    .total { display: flex; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 2px solid #1f2937; font-size: 16px; }
+    .total-amount { font-size: 24px; font-weight: 900; }
+    .footer { background: #f9fafb; padding: 12px; text-align: center; font-size: 10px; color: #9ca3af; border-radius: 0 0 12px 12px; }
+    .pending { background: #f3f4f6; border-radius: 12px; padding: 16px; text-align: center; margin-top: 16px; }
+    .pending strong { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Fatura Pré-Paga</h1>
+    <p>MarquesMater</p>
+  </div>
+  <div class="body">
+    <div class="meta">
+      <div>
+        <div class="meta-label">Fatura</div>
+        <div class="meta-value">${order.token}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="meta-label">Data</div>
+        <div class="meta-value" style="font-size:12px">${date}</div>
+      </div>
+    </div>
+    ${items.map((item) => `
+    <div class="item">
+      <div>
+        <div class="item-name">${item.product_name}</div>
+        ${item.location ? `<div class="item-detail">${item.location}</div>` : ""}
+        <div class="item-detail">${item.quantity}x ${formatPrice(Number(item.price))}</div>
+      </div>
+      <div style="font-weight:700">${formatPrice(Number(item.price) * item.quantity)}</div>
+    </div>
+    `).join("")}
+    <div style="margin-top:12px">
+      <div class="item" style="font-size:11px;color:#6b7280">
+        <span>Subtotal</span>
+        <span>${formatPrice(subtotal)}</span>
+      </div>
+      ${tax > 0 ? `<div class="item" style="font-size:11px;color:#6b7280"><span>IVA</span><span>${formatPrice(tax)}</span></div>` : ""}
+      <div class="total">
+        <span style="font-weight:700">Total</span>
+        <span class="total-amount">${formatPrice(total)}</span>
+      </div>
+    </div>
+    <div class="pending">
+      <div style="font-weight:700;margin-bottom:4px">💳 Por pagar</div>
+      <div style="font-size:12px;color:#6b7280">Apresente esta fatura no balcão da <strong>MarquesMater</strong> e efetue o pagamento.</div>
+    </div>
+  </div>
+  <div class="footer">
+    <p><strong>MarquesMater</strong> · R. Sociedade Filarmónica, Ed. Estrada Nova, Louriçal</p>
+    <p>Tel: 236 961 569 · Email: loja@marquesmater.pt</p>
+    <p style="font-style:italic">Documento pré-paga — não equivale a fatura-recibo.</p>
+  </div>
+</body>
+</html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fatura-${order.token}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 sm:py-10 px-4">
@@ -154,6 +246,14 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
         >
           {showQR ? "Ocultar QR" : "Telemóvel"}
         </button>
+        {isMobile && (
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 transition shadow-lg"
+          >
+            <Download className="h-4 w-4" /> Transferir
+          </button>
+        )}
       </div>
 
       {showQR && (
