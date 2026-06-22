@@ -2,7 +2,13 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { Home, Search, Wrench, Sparkles, Clock } from "lucide-react";
 import { useKioskIdle } from "@/lib/kiosk-idle";
 import { Logo } from "@/components/Logo";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+} from "@/components/ui/dialog";
 import { clearKioskSession } from "@/lib/customer";
 import { CartProvider } from "@/lib/useCart";
 import { CartFAB } from "@/components/CartDrawer";

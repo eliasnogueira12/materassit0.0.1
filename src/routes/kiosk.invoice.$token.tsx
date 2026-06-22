@@ -41,8 +41,13 @@ function InvoicePage() {
         <div className="text-center max-w-md">
           <Package className="h-24 w-24 text-gray-300 mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Fatura não encontrada</h1>
-          <p className="text-gray-500 mb-8 text-lg">Esta fatura pode ter expirado ou o link é inválido.</p>
-          <Link to="/kiosk/start" className="inline-block bg-gray-800 text-white px-8 py-4 rounded-2xl text-lg font-bold">
+          <p className="text-gray-500 mb-8 text-lg">
+            Esta fatura pode ter expirado ou o link é inválido.
+          </p>
+          <Link
+            to="/kiosk/start"
+            className="inline-block bg-gray-800 text-white px-8 py-4 rounded-2xl text-lg font-bold"
+          >
             Voltar ao assistente
           </Link>
         </div>
@@ -54,7 +59,19 @@ function InvoicePage() {
   return <Receipt order={order} items={items} />;
 }
 
-function Receipt({ order, items }: { order: { id: string; token: string; total: number; created_at: string; status: string }; items: { id: string; product_name: string; quantity: number; price: number; location: string | null }[] }) {
+function Receipt({
+  order,
+  items,
+}: {
+  order: { id: string; token: string; total: number; created_at: string; status: string };
+  items: {
+    id: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+    location: string | null;
+  }[];
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [showQR, setShowQR] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -62,7 +79,11 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   const invoiceUrl = `${origin}${path}`;
   const date = new Date(order.created_at).toLocaleDateString("pt-PT", {
-    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
   const subtotal = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
   const total = Number(order.total);
@@ -115,7 +136,9 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
         <div class="meta-value" style="font-size:12px">${date}</div>
       </div>
     </div>
-    ${items.map((item) => `
+    ${items
+      .map(
+        (item) => `
     <div class="item">
       <div>
         <div class="item-name">${item.product_name}</div>
@@ -124,7 +147,9 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
       </div>
       <div style="font-weight:700">${formatPrice(Number(item.price) * item.quantity)}</div>
     </div>
-    `).join("")}
+    `,
+      )
+      .join("")}
     <div style="margin-top:12px">
       <div class="item" style="font-size:11px;color:#6b7280">
         <span>Subtotal</span>
@@ -190,13 +215,20 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
 
           <div className="space-y-0.5 text-[11px] text-gray-500">
             {items.map((item) => (
-              <div key={item.id} className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0">
+              <div
+                key={item.id}
+                className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0"
+              >
                 <div className="flex-1 min-w-0 pr-3">
                   <p className="font-semibold text-gray-800 text-sm">{item.product_name}</p>
                   {item.location && <p className="text-gray-400 mt-0.5">{item.location}</p>}
-                  <p className="text-gray-400 mt-0.5">{item.quantity}x {formatPrice(Number(item.price))}</p>
+                  <p className="text-gray-400 mt-0.5">
+                    {item.quantity}x {formatPrice(Number(item.price))}
+                  </p>
                 </div>
-                <p className="font-bold text-gray-800 shrink-0">{formatPrice(Number(item.price) * item.quantity)}</p>
+                <p className="font-bold text-gray-800 shrink-0">
+                  {formatPrice(Number(item.price) * item.quantity)}
+                </p>
               </div>
             ))}
           </div>
@@ -227,7 +259,9 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
         </div>
 
         <div className="bg-gray-50 border-t border-gray-200 p-3 text-center text-[10px] text-gray-400 space-y-0.5">
-          <p><strong>MarquesMater</strong> · R. Sociedade Filarmónica, Ed. Estrada Nova, Louriçal</p>
+          <p>
+            <strong>MarquesMater</strong> · R. Sociedade Filarmónica, Ed. Estrada Nova, Louriçal
+          </p>
           <p>Tel: 236 961 569 · Email: loja@marquesmater.pt</p>
           <p className="italic">Documento pré-paga — não equivale a fatura-recibo.</p>
         </div>
@@ -259,7 +293,9 @@ function Receipt({ order, items }: { order: { id: string; token: string; total: 
       {showQR && (
         <div className="mt-4 no-print animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-200 text-center">
-            <p className="text-xs text-gray-500 mb-3 font-medium">Abra no telemóvel para guardar ou imprimir</p>
+            <p className="text-xs text-gray-500 mb-3 font-medium">
+              Abra no telemóvel para guardar ou imprimir
+            </p>
             <QRCode url={invoiceUrl} size={160} />
           </div>
         </div>

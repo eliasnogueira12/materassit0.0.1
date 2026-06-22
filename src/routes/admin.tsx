@@ -1,8 +1,31 @@
-import { createFileRoute, Link, Outlet, redirect, isRedirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  isRedirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAdminSession } from "@/lib/use-admin-session";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Wrench, Tag, LogOut, Home, Bell, Sparkles, Users, Menu, X, FileText, QrCode, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  Wrench,
+  Tag,
+  LogOut,
+  Home,
+  Bell,
+  Sparkles,
+  Users,
+  Menu,
+  X,
+  FileText,
+  QrCode,
+  Settings,
+} from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAssistanceRequests, playChime } from "@/lib/assistance";
 import { toast } from "sonner";
@@ -12,7 +35,7 @@ export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
     // Allow the login page through without server check.
     if (location.pathname === "/admin/login") return;
-    
+
     // Skip checking authentication on the server during SSR (since session is localStorage-based).
     if (typeof window === "undefined") return;
 
@@ -37,12 +60,13 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-
 function AdminLayout() {
   const { status, user, recheck } = useAdminSession();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [storeName, setStoreName] = useState("MaterAssist");
 
   useEffect(() => {
     setMobileOpen(false);
@@ -53,6 +77,24 @@ function AdminLayout() {
       navigate({ to: "/admin/login" });
     }
   }, [status, pathname, navigate]);
+
+  useEffect(() => {
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "branding")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const b = data.value as Record<string, string>;
+            if (b.logo_url) setLogoUrl(b.logo_url);
+            if (b.store_name) setStoreName(b.store_name);
+          }
+        },
+        () => {},
+      );
+  }, []);
 
   // IMPORTANT: all hooks must be declared before any conditional return
   // (React rules of hooks — otherwise produces error #310).
@@ -87,7 +129,8 @@ function AdminLayout() {
         <div className="max-w-md bg-card border rounded-2xl p-8">
           <h2 className="text-xl font-bold text-primary">Conta sem permissões</h2>
           <p className="mt-3 text-muted-foreground">
-            Esta conta ({user?.email}) ainda não foi reconhecida como admin. Tente novamente — a permissão pode ainda estar a sincronizar.
+            Esta conta ({user?.email}) ainda não foi reconhecida como admin. Tente novamente — a
+            permissão pode ainda estar a sincronizar.
           </p>
           <p className="mt-2 text-xs text-muted-foreground break-all">
             user_id: <code>{user?.id}</code>
@@ -100,7 +143,10 @@ function AdminLayout() {
               Tentar novamente
             </button>
             <button
-              onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/admin/login" }); }}
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/admin/login" });
+              }}
               className="px-4 py-2 rounded-lg border text-sm"
             >
               Sair
@@ -129,9 +175,9 @@ function AdminLayout() {
       {/* Mobile top header bar */}
       <header className="flex md:hidden items-center justify-between bg-sidebar text-sidebar-foreground px-4 py-3 border-b border-sidebar-border shadow-sm">
         <div className="flex items-center gap-2">
-          <Logo className="h-8 w-auto bg-white rounded p-0.5" />
+          <Logo className="h-8 w-auto bg-white rounded p-0.5" src={logoUrl} alt={storeName} />
           <div>
-            <div className="font-bold text-sm leading-none">MaterAssist</div>
+            <div className="font-bold text-sm leading-none">{storeName}</div>
             <div className="text-[10px] opacity-70 mt-0.5">Admin</div>
           </div>
         </div>
@@ -164,8 +210,8 @@ function AdminLayout() {
         {/* Close button inside mobile menu */}
         <div className="flex md:hidden items-center justify-between mb-6 px-2 pb-2 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <Logo className="h-8 w-auto bg-white rounded p-0.5" />
-            <span className="font-bold text-sm">MaterAssist</span>
+            <Logo className="h-8 w-auto bg-white rounded p-0.5" src={logoUrl} alt={storeName} />
+            <span className="font-bold text-sm">{storeName}</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -177,9 +223,9 @@ function AdminLayout() {
 
         {/* Desktop Title & Logo */}
         <div className="hidden md:flex items-center gap-2 mb-8 px-2">
-          <Logo className="h-10 w-auto bg-white rounded p-0.5" />
+          <Logo className="h-10 w-auto bg-white rounded p-0.5" src={logoUrl} alt={storeName} />
           <div>
-            <div className="font-bold">MaterAssist</div>
+            <div className="font-bold">{storeName}</div>
             <div className="text-xs opacity-70">Admin</div>
           </div>
         </div>
@@ -205,18 +251,26 @@ function AdminLayout() {
           })}
         </nav>
         <div className="space-y-1 pt-4 border-t border-sidebar-border">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm hover:bg-sidebar-accent">
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm hover:bg-sidebar-accent"
+          >
             <Home className="h-4 w-4" /> Ver quiosque
           </Link>
           <button
-            onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/admin/login" }); }}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/admin/login" });
+            }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm hover:bg-sidebar-accent"
           >
             <LogOut className="h-4 w-4" /> Sair
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto p-4 md:p-8"><Outlet /></main>
+      <main className="flex-1 overflow-auto p-4 md:p-8">
+        <Outlet />
+      </main>
     </div>
   );
 }

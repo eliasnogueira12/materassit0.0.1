@@ -8,13 +8,11 @@ import { useFullscreen, useWakeLock } from "@/lib/useKiosk";
 import { useI18n, greetingFor, FLAGS, type Lang } from "@/lib/i18n";
 import { useAccessibility } from "@/lib/useAccessibility";
 import { supabase } from "@/integrations/supabase/client";
+import { listenSettingsChange } from "@/lib/settings-broadcast";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "MaterAssist — MarquesMater" },
-      { name: "description", content: "Toque para começar." },
-    ],
+    meta: [{ title: "MarquesMater" }, { name: "description", content: "Toque para começar." }],
   }),
   component: Home,
 });
@@ -30,15 +28,82 @@ function Home() {
   const tapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const [phrases, setPhrases] = useState<Record<string, string> | null>(null);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [storeName, setStoreName] = useState("MarquesMater");
 
   useEffect(() => {
-    supabase.from("settings").select("value").eq("key", "phrases").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) {
-          const all = data.value as Record<string, Record<string, string>>;
-          setPhrases(all[lang] || all["pt"] || null);
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "phrases")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const all = data.value as Record<string, Record<string, string>>;
+            setPhrases(all[lang] || all["pt"] || null);
+          }
+        },
+        () => {},
+      );
+  }, [lang]);
+
+  useEffect(() => {
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "branding")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const b = data.value as Record<string, string>;
+            if (b.logo_url) setLogoUrl(b.logo_url);
+            if (b.store_name) setStoreName(b.store_name);
+          }
+        },
+        () => {},
+      );
+  }, []);
+
+  // Auto-refresh when admin saves settings
+  useEffect(() => {
+    const unsub = listenSettingsChange((key) => {
+      if (key === "phrases") {
+        supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "phrases")
+          .maybeSingle()
+          .then(
+            ({ data }) => {
+              if (data?.value) {
+                const all = data.value as Record<string, Record<string, string>>;
+                setPhrases(all[lang] || all["pt"] || null);
+              }
+            },
+            () => {},
+          );
+      }
+      if (key === "branding") {
+        supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "branding")
+          .maybeSingle()
+          .then(
+            ({ data }) => {
+              if (data?.value) {
+                const b = data.value as Record<string, string>;
+                if (b.logo_url) setLogoUrl(b.logo_url);
+                if (b.store_name) setStoreName(b.store_name);
+              }
+            },
+            () => {},
+          );
+      }
+    });
+    return unsub;
   }, [lang]);
 
   const fs = useFullscreen();
@@ -56,7 +121,9 @@ function Home() {
       setShowAdmin(true);
       tapCount.current = 0;
     } else {
-      tapTimer.current = setTimeout(() => { tapCount.current = 0; }, TAP_WINDOW_MS);
+      tapTimer.current = setTimeout(() => {
+        tapCount.current = 0;
+      }, TAP_WINDOW_MS);
     }
   }
 
@@ -69,15 +136,17 @@ function Home() {
 
       <div className="relative min-h-screen flex flex-col items-center justify-center px-8 text-center z-10">
         <button onClick={handleLogoTap} className="cursor-pointer">
-          <Logo className="h-28 w-auto mb-8 drop-shadow-2xl bg-white/95 rounded-2xl p-3" />
+          <Logo
+            className="h-28 w-auto mb-8 drop-shadow-2xl bg-white/95 rounded-2xl p-3"
+            src={logoUrl}
+            alt={storeName}
+          />
         </button>
-        <p className="text-2xl md:text-3xl opacity-90 mb-2 min-h-[2.25rem]">{greetingFor(new Date(), lang)}!</p>
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-          {welcome}
-        </h1>
-        <p className="mt-4 text-xl md:text-2xl opacity-80 max-w-2xl">
-          {subtitle}
+        <p className="text-2xl md:text-3xl opacity-90 mb-2 min-h-[2.25rem]">
+          {greetingFor(new Date(), lang)}!
         </p>
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">{welcome}</h1>
+        <p className="mt-4 text-xl md:text-2xl opacity-80 max-w-2xl">{subtitle}</p>
 
         <Link
           to="/kiosk/start"
@@ -89,18 +158,36 @@ function Home() {
 
         <div className="mt-8 flex items-center gap-3 text-sm z-10">
           {(["pt", "en", "es"] as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)} title={l.toUpperCase()}
-              className={`px-2 py-1 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-white/20" : "text-white/50 hover:text-white/80"}`}>
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              title={l.toUpperCase()}
+              className={`px-2 py-1 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-white/20" : "text-white/50 hover:text-white/80"}`}
+            >
               {FLAGS[l]}
             </button>
           ))}
           <span className="text-white/20">|</span>
-          <button onClick={() => setFontSize(Math.max(80, fontSize - 10))} className="text-white/50 hover:text-white/80 px-1 text-xs" title={t("font_size")}>A−</button>
+          <button
+            onClick={() => setFontSize(Math.max(80, fontSize - 10))}
+            className="text-white/50 hover:text-white/80 px-1 text-xs"
+            title={t("font_size")}
+          >
+            A−
+          </button>
           <span className="text-white/50 text-xs w-5 text-center">{fontSize}%</span>
-          <button onClick={() => setFontSize(Math.min(150, fontSize + 10))} className="text-white/50 hover:text-white/80 px-1 text-xs" title={t("font_size")}>A+</button>
+          <button
+            onClick={() => setFontSize(Math.min(150, fontSize + 10))}
+            className="text-white/50 hover:text-white/80 px-1 text-xs"
+            title={t("font_size")}
+          >
+            A+
+          </button>
           <span className="text-white/20">|</span>
-          <button onClick={() => setHighContrast(!highContrast)}
-            className={`px-2 py-1 rounded font-semibold transition text-xs ${highContrast ? "bg-white text-black" : "text-white/50 hover:text-white/80"}`}>
+          <button
+            onClick={() => setHighContrast(!highContrast)}
+            className={`px-2 py-1 rounded font-semibold transition text-xs ${highContrast ? "bg-white text-black" : "text-white/50 hover:text-white/80"}`}
+          >
             {t("high_contrast")}
           </button>
         </div>

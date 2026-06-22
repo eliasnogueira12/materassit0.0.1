@@ -15,8 +15,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Key, FileText, Youtube, Palette, Plus, Trash2, ShieldAlert, Globe } from "lucide-react";
+import {
+  Key,
+  FileText,
+  Youtube,
+  Palette,
+  Plus,
+  Trash2,
+  ShieldAlert,
+  Globe,
+  Image,
+  Upload,
+  Save,
+} from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
+import { broadcastSettingsChange } from "@/lib/settings-broadcast";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettingsPage,
@@ -47,7 +60,7 @@ function extractYoutubeId(urlOrId: string): string | null {
   if (trimmed.length === 11 && !trimmed.includes("/") && !trimmed.includes(".")) {
     return trimmed;
   }
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|shorts\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = trimmed.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
 }
@@ -83,6 +96,11 @@ function AdminSettingsPage() {
     gradientFrom: "#1a1a2e",
     gradientTo: "#0f3460",
   });
+
+  // Branding States
+  const [logoUrl, setLogoUrl] = useState("");
+  const [storeName, setStoreName] = useState("MarquesMater");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Load Settings from Supabase
   useEffect(() => {
@@ -134,6 +152,23 @@ function AdminSettingsPage() {
         },
         () => {},
       );
+
+    // Load branding
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "branding")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const b = data.value as Record<string, string>;
+            if (b.logo_url) setLogoUrl(b.logo_url);
+            if (b.store_name) setStoreName(b.store_name);
+          }
+        },
+        () => {},
+      );
   }, []);
 
   // Save Settings Helper
@@ -145,6 +180,7 @@ function AdminSettingsPage() {
         .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
       if (error) throw error;
       toast.success(successMsg);
+      broadcastSettingsChange(key);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Erro desconhecido";
       console.error(`[Settings] Erro ao guardar ${key}:`, e);
@@ -236,6 +272,43 @@ function AdminSettingsPage() {
     saveSetting("theme", theme, "Tema e cores do ecrã principal guardados!");
   }
 
+  // Logo Upload
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor selecione um ficheiro de imagem.");
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const safeName = file.name.replace(/[^a-z0-9.-]/gi, "_");
+      const path = `logos/${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+      setLogoUrl(publicUrl);
+      toast.success("Logotipo carregado! Guarde as alterações para aplicar.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar logotipo: ${message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  // Save Branding
+  function handleSaveBranding() {
+    saveSetting(
+      "branding",
+      { logo_url: logoUrl, store_name: storeName },
+      "Definições de marca guardadas!",
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -246,7 +319,7 @@ function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="credentials" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 gap-2 bg-muted p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-5 gap-2 bg-muted p-1 rounded-xl">
           <TabsTrigger
             value="credentials"
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
@@ -264,6 +337,12 @@ function AdminSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="theme" className="flex items-center gap-2 py-2.5 rounded-lg text-sm">
             <Palette className="h-4 w-4" /> Temas
+          </TabsTrigger>
+          <TabsTrigger
+            value="branding"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
+            <Image className="h-4 w-4" /> Marca
           </TabsTrigger>
         </TabsList>
 
@@ -560,19 +639,24 @@ function AdminSettingsPage() {
                 <span className="text-xs font-semibold text-muted-foreground block mb-2">
                   Esquemas Rápidos (Presets)
                 </span>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {[
                     { from: "#1a1a2e", to: "#0f3460", label: "Noite MarquesMater (Original)" },
                     { from: "#111827", to: "#1f2937", label: "Dark Gray" },
                     { from: "#065f46", to: "#022c22", label: "Verde Jardim" },
                     { from: "#1e3a8a", to: "#172554", label: "Azul Profundo" },
                     { from: "#581c87", to: "#3b0764", label: "Púrpura Escuro" },
+                    { from: "#1a3a1a", to: "#2d5a27", label: "🎄 Natal (Vermelho+Verde)" },
+                    { from: "#b8860b", to: "#1a1a1a", label: "🎆 Ano Novo (Dourado+Preto)" },
+                    { from: "#ff69b4", to: "#daa520", label: "🎂 Aniversário (Rosa+Dourado)" },
+                    { from: "#ff8c00", to: "#2d1b00", label: "🎃 Halloween (Laranja+Preto)" },
+                    { from: "#ffb7c5", to: "#98fb98", label: "🌸 Primavera (Rosa+Verde)" },
                   ].map((preset, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setTheme({ gradientFrom: preset.from, gradientTo: preset.to })}
-                      className="w-8 h-8 rounded-full border border-border cursor-pointer transition shadow-sm hover:scale-110 active:scale-95"
+                      className="w-10 h-10 rounded-full border-2 border-border cursor-pointer transition shadow-sm hover:scale-110 active:scale-95"
                       style={{
                         background: `linear-gradient(135deg, ${preset.from}, ${preset.to})`,
                       }}
@@ -580,6 +664,10 @@ function AdminSettingsPage() {
                     />
                   ))}
                 </div>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Selecione um esquema de cores para ocasiões especiais (Natal, Ano Novo,
+                  Aniversário, etc.)
+                </p>
               </div>
 
               {/* Real-time Theme Preview */}
@@ -601,6 +689,132 @@ function AdminSettingsPage() {
             <CardFooter className="flex justify-end pt-4 border-t">
               <Button onClick={handleSaveTheme} disabled={busy}>
                 {busy ? "A guardar..." : "Guardar Tema"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* Branding Tab */}
+        <TabsContent value="branding" className="mt-4 focus-visible:outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle>Marca e Identidade Visual</CardTitle>
+              <CardDescription>
+                Personalize o logotipo e o nome da loja exibidos no quiosque e no painel de
+                administração.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Logo Upload */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-1.5">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  Logotipo da Loja
+                </Label>
+                <div className="flex items-start gap-4">
+                  <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 shrink-0">
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt="Logotipo"
+                        className="w-full h-full object-contain p-2"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center p-2">
+                        <Image className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                        <span className="text-[10px] text-muted-foreground block mt-1">
+                          Sem logotipo
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={uploadingLogo}
+                        className="relative"
+                        asChild
+                      >
+                        <label className="cursor-pointer">
+                          <Upload className="h-4 w-4 mr-1.5" />
+                          {uploadingLogo ? "A carregar..." : "Carregar Imagem"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleLogoUpload}
+                            disabled={uploadingLogo}
+                          />
+                        </label>
+                      </Button>
+                      {logoUrl && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setLogoUrl("")}
+                          title="Remover logotipo"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Formatos aceites: PNG, JPG, WEBP. A imagem será redimensionada
+                      automaticamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Store Name */}
+              <div className="space-y-2 pt-4 border-t border-border">
+                <Label htmlFor="store-name" className="flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Nome da Loja
+                </Label>
+                <Input
+                  id="store-name"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Ex: MarquesMater"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Este nome aparece no título do painel de administração e no ecrã do quiosque.
+                </p>
+              </div>
+
+              {/* Logo Preview */}
+              <div className="pt-4 border-t border-border">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
+                  Pré-visualização do logotipo
+                </span>
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#0f3460] text-white text-center shadow-md flex flex-col items-center gap-3">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Logotipo"
+                      className="h-16 w-auto max-w-[200px] object-contain"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Image className="h-8 w-8 text-white/50" />
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <p className="font-bold text-base">{storeName || "Nome da Loja"}</p>
+                    <p className="text-[10px] opacity-60">Quiosque interativo</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end pt-4 border-t">
+              <Button onClick={handleSaveBranding} disabled={busy}>
+                <Save className="h-4 w-4 mr-1.5" />
+                {busy ? "A guardar..." : "Guardar Marca"}
               </Button>
             </CardFooter>
           </Card>

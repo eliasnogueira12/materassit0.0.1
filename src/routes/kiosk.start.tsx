@@ -15,7 +15,10 @@ import QRCode from "@/components/QRCode";
 
 function isStandalone() {
   if (typeof window === "undefined") return false;
-  return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true
+  );
 }
 
 export const Route = createFileRoute("/kiosk/start")({
@@ -80,12 +83,20 @@ function AssistantPage() {
   const [farewell, setFarewell] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  const revealRef = useRef<{ text: string; idx: number; timer: ReturnType<typeof setInterval> | null }>({
-    text: "", idx: 0, timer: null,
+  const revealRef = useRef<{
+    text: string;
+    idx: number;
+    timer: ReturnType<typeof setInterval> | null;
+  }>({
+    text: "",
+    idx: 0,
+    timer: null,
   });
 
   useEffect(() => {
-    return () => { if (revealRef.current.timer) clearInterval(revealRef.current.timer); };
+    return () => {
+      if (revealRef.current.timer) clearInterval(revealRef.current.timer);
+    };
   }, []);
 
   function revealText(fullText: string, msPerChar: number, onDone?: () => void) {
@@ -94,7 +105,13 @@ function AssistantPage() {
     r.text = fullText;
     r.idx = 0;
     setMessages((m) => {
-      if (m.length > 0 && m[m.length - 1].role === "assistant" && m[m.length - 1].content === "" && !m[m.length - 1].products) return m;
+      if (
+        m.length > 0 &&
+        m[m.length - 1].role === "assistant" &&
+        m[m.length - 1].content === "" &&
+        !m[m.length - 1].products
+      )
+        return m;
       return [...m, { role: "assistant", content: "" }];
     });
     r.timer = setInterval(() => {
@@ -163,14 +180,21 @@ function AssistantPage() {
     setBusy(true);
     if (customer) logHistory(customer.id, "search", { query: q });
     try {
-      const history = messages.slice(-10).filter((m) => m.content.trim()).map(({ role, content }) => ({ role, content }));
-      const { reply, products, addToCart } = await ask({ data: { message: q, history, skipProductIds: alreadyRecommended } });
+      const history = messages
+        .slice(-10)
+        .filter((m) => m.content.trim())
+        .map(({ role, content }) => ({ role, content }));
+      const { reply, products, addToCart } = await ask({
+        data: { message: q, history, skipProductIds: alreadyRecommended },
+      });
 
       if (addToCart && addToCart.length > 0) {
         for (const item of addToCart) {
           try {
             await cart.addProduct(item.productId, item.name, item.price, item.location);
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         await cart.refresh();
       }
@@ -232,10 +256,7 @@ function AssistantPage() {
       if (customer) logHistory(customer.id, "assistance", { request_id: data.id });
     } catch (err) {
       console.error("[Chat] Erro ao chamar funcionário:", err);
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: t("error_call_staff") },
-      ]);
+      setMessages((m) => [...m, { role: "assistant", content: t("error_call_staff") }]);
     } finally {
       setCalling(false);
     }
@@ -261,8 +282,12 @@ function AssistantPage() {
         {/* Language */}
         <div className="flex items-center gap-1">
           {(["pt", "en", "es"] as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)} title={l.toUpperCase()}
-              className={`px-2 py-0.5 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}>
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              title={l.toUpperCase()}
+              className={`px-2 py-0.5 rounded font-semibold transition text-lg leading-none ${lang === l ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
+            >
               {FLAGS[l]}
             </button>
           ))}
@@ -270,23 +295,38 @@ function AssistantPage() {
         <span className="opacity-30">|</span>
         {/* Font size */}
         <div className="flex items-center gap-1">
-          <button onClick={() => setFontSize(Math.max(80, fontSize - 10))} className="px-2 py-0.5 rounded hover:bg-muted transition" title={t("font_size")}>A−</button>
+          <button
+            onClick={() => setFontSize(Math.max(80, fontSize - 10))}
+            className="px-2 py-0.5 rounded hover:bg-muted transition"
+            title={t("font_size")}
+          >
+            A−
+          </button>
           <span className="text-xs w-6 text-center">{fontSize}%</span>
-          <button onClick={() => setFontSize(Math.min(150, fontSize + 10))} className="px-2 py-0.5 rounded hover:bg-muted transition" title={t("font_size")}>A+</button>
+          <button
+            onClick={() => setFontSize(Math.min(150, fontSize + 10))}
+            className="px-2 py-0.5 rounded hover:bg-muted transition"
+            title={t("font_size")}
+          >
+            A+
+          </button>
         </div>
         <span className="opacity-30">|</span>
         {/* High contrast */}
-        <button onClick={() => setHighContrast(!highContrast)}
-          className={`px-2 py-0.5 rounded font-semibold transition ${highContrast ? "bg-foreground text-background" : "hover:bg-muted"}`}>
+        <button
+          onClick={() => setHighContrast(!highContrast)}
+          className={`px-2 py-0.5 rounded font-semibold transition ${highContrast ? "bg-foreground text-background" : "hover:bg-muted"}`}
+        >
           {t("high_contrast")}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-card/80 backdrop-blur border rounded-2xl p-4 space-y-4 shadow-inner scroll-smooth"
-      >
+      <div className="flex-1 overflow-y-auto bg-card/80 backdrop-blur border rounded-2xl p-4 space-y-4 shadow-inner scroll-smooth">
         {messages.map((m, i) => (
           <div key={i} className="space-y-3">
-            <div className={`flex gap-3 animate-fade-in ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+            <div
+              className={`flex gap-3 animate-fade-in ${m.role === "user" ? "flex-row-reverse" : ""}`}
+            >
               <div
                 className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${m.role === "user" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}`}
               >

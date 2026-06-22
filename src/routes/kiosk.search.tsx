@@ -3,8 +3,15 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Package, Paintbrush, Zap, Hammer, Droplet, ChevronRight, Search,
-  ArrowUpDown, X,
+  Package,
+  Paintbrush,
+  Zap,
+  Hammer,
+  Droplet,
+  ChevronRight,
+  Search,
+  ArrowUpDown,
+  X,
 } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import type { RecommendedProduct } from "@/lib/assistant.functions";
@@ -22,9 +29,20 @@ function parseCategory(rawCat: string | null) {
     return { parent: parts[0].trim(), sub: parts[1].trim() };
   }
   if (rawCat.includes(",")) {
-    const parts = rawCat.split(",").map(p => p.trim());
-    const parent = parts.find(c => ["pintura", "pinturas", "materiais elétricos", "elétrico", "elétrica", "ferragens", "canalização"].includes(c.toLowerCase())) || parts[0];
-    const sub = parts.find(c => c !== parent) || "Geral";
+    const parts = rawCat.split(",").map((p) => p.trim());
+    const parent =
+      parts.find((c) =>
+        [
+          "pintura",
+          "pinturas",
+          "materiais elétricos",
+          "elétrico",
+          "elétrica",
+          "ferragens",
+          "canalização",
+        ].includes(c.toLowerCase()),
+      ) || parts[0];
+    const sub = parts.find((c) => c !== parent) || "Geral";
     return { parent: normCat(parent), sub };
   }
   return { parent: normCat(rawCat.trim()), sub: "Geral" };
@@ -51,8 +69,11 @@ function catColor(parent: string): string {
 function catIcon(parent: string, cls = "h-10 w-10") {
   const c = catColor(parent);
   const colorMap: Record<string, string> = {
-    emerald: "text-emerald-500", amber: "text-amber-500",
-    sky: "text-sky-500", blue: "text-blue-500", slate: "text-muted-foreground",
+    emerald: "text-emerald-500",
+    amber: "text-amber-500",
+    sky: "text-sky-500",
+    blue: "text-blue-500",
+    slate: "text-muted-foreground",
   };
   const iconMap: Record<string, React.ReactNode> = {
     emerald: <Paintbrush className={`${cls} ${colorMap[c]}`} />,
@@ -65,12 +86,15 @@ function catIcon(parent: string, cls = "h-10 w-10") {
 
 function toRec(p: any): RecommendedProduct {
   return {
-    id: p.id, name: p.name, category: p.category,
+    id: p.id,
+    name: p.name,
+    category: p.category,
     location: [p.section, p.aisle, p.shelf].filter(Boolean).join(" · "),
     price: p.price != null ? Number(p.price) : null,
     promotion: p.promotion_active && p.promotion_price != null ? Number(p.promotion_price) : null,
     stock: p.stock_visible ? p.stock : null,
-    image_url: p.image_url, description: p.description,
+    image_url: p.image_url,
+    description: p.description,
   };
 }
 
@@ -102,11 +126,7 @@ function SearchPage() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", "kiosk-search", q],
     queryFn: async () => {
-      let query = supabase
-        .from("products")
-        .select("*")
-        .eq("active", true)
-        .order("name");
+      let query = supabase.from("products").select("*").eq("active", true).order("name");
       if (q.trim()) {
         const term = `%${q.trim()}%`;
         query = query.or(
@@ -119,11 +139,14 @@ function SearchPage() {
     },
   });
 
-  const parsedProducts = useMemo(() => products.map(p => ({ ...p, parsedCat: parseCategory(p.category) })), [products]);
+  const parsedProducts = useMemo(
+    () => products.map((p) => ({ ...p, parsedCat: parseCategory(p.category) })),
+    [products],
+  );
 
   const structure = useMemo(() => {
     const parentMap: Record<string, Set<string>> = {};
-    parsedProducts.forEach(p => {
+    parsedProducts.forEach((p) => {
       const { parent, sub } = p.parsedCat;
       if (!parentMap[parent]) parentMap[parent] = new Set();
       parentMap[parent].add(sub);
@@ -147,16 +170,20 @@ function SearchPage() {
 
   const chips = useMemo(() => {
     const cats = new Set<string>();
-    parsedProducts.forEach(p => { if (p.parsedCat.parent) cats.add(p.parsedCat.parent); });
-    return ALL_CATEGORIES.filter(c => cats.has(c));
+    parsedProducts.forEach((p) => {
+      if (p.parsedCat.parent) cats.add(p.parsedCat.parent);
+    });
+    return ALL_CATEGORIES.filter((c) => cats.has(c));
   }, [parsedProducts]);
 
   const chipFiltered = useMemo(() => {
     if (!activeChip) return sortedProducts;
-    return sortedProducts.filter(p => p.parsedCat.parent === activeChip);
+    return sortedProducts.filter((p) => p.parsedCat.parent === activeChip);
   }, [sortedProducts, activeChip]);
 
-  useEffect(() => { setActiveChip(null); }, [q]);
+  useEffect(() => {
+    setActiveChip(null);
+  }, [q]);
 
   /* ── render ── */
 
@@ -190,7 +217,10 @@ function SearchPage() {
             />
             {rawQ && (
               <button
-                onClick={() => { setRawQ(""); inputRef.current?.focus(); }}
+                onClick={() => {
+                  setRawQ("");
+                  inputRef.current?.focus();
+                }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-muted transition text-muted-foreground"
               >
                 <X className="h-5 w-5" />
@@ -211,7 +241,7 @@ function SearchPage() {
               >
                 Todas
               </button>
-              {chips.map(cat => (
+              {chips.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveChip(activeChip === cat ? null : cat)}
@@ -240,8 +270,15 @@ function SearchPage() {
             query={rawQ.trim()}
             sortBy={sortBy}
             sortDir={sortDir}
-            onSortChange={(b, d) => { setSortBy(b); setSortDir(d); }}
-            onClearFilter={() => { setRawQ(""); setActiveChip(null); inputRef.current?.focus(); }}
+            onSortChange={(b, d) => {
+              setSortBy(b);
+              setSortDir(d);
+            }}
+            onClearFilter={() => {
+              setRawQ("");
+              setActiveChip(null);
+              inputRef.current?.focus();
+            }}
           />
         ) : selectedParent && selectedSub ? (
           <SubcategoryProducts
@@ -256,7 +293,10 @@ function SearchPage() {
             parent={selectedParent}
             products={parsedProducts}
             subs={Array.from(structure.parentMap[selectedParent] || []).sort()}
-            onBack={() => { setSelectedParent(null); setSelectedSub(null); }}
+            onBack={() => {
+              setSelectedParent(null);
+              setSelectedSub(null);
+            }}
             onSelect={setSelectedSub}
           />
         ) : (
@@ -273,21 +313,25 @@ function SearchPage() {
 
 /* ─── sub-components ─── */
 
-function CategoryGrid({ parents, products, onSelect }: {
+function CategoryGrid({
+  parents,
+  products,
+  onSelect,
+}: {
   parents: string[];
   products: any[];
   onSelect: (p: string) => void;
 }) {
   function catImage(pName: string): string | null {
-    const prod = products.find(p => p.parsedCat.parent === pName && p.image_url);
+    const prod = products.find((p) => p.parsedCat.parent === pName && p.image_url);
     return prod?.image_url ?? null;
   }
   return (
     <div className="animate-fade-in">
       <h2 className="text-2xl font-bold text-primary mb-6">Categorias</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {parents.map(pName => {
-          const count = products.filter(p => p.parsedCat.parent === pName).length;
+        {parents.map((pName) => {
+          const count = products.filter((p) => p.parsedCat.parent === pName).length;
           const img = catImage(pName);
           return (
             <button
@@ -323,7 +367,13 @@ function CategoryGrid({ parents, products, onSelect }: {
   );
 }
 
-function Subcategories({ parent, products, subs, onBack, onSelect }: {
+function Subcategories({
+  parent,
+  products,
+  subs,
+  onBack,
+  onSelect,
+}: {
   parent: string;
   products: any[];
   subs: string[];
@@ -331,13 +381,18 @@ function Subcategories({ parent, products, subs, onBack, onSelect }: {
   onSelect: (s: string) => void;
 }) {
   function subImage(sub: string): string | null {
-    const prod = products.find(p => p.parsedCat.parent === parent && p.parsedCat.sub === sub && p.image_url);
+    const prod = products.find(
+      (p) => p.parsedCat.parent === parent && p.parsedCat.sub === sub && p.image_url,
+    );
     return prod?.image_url ?? null;
   }
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onBack} className="p-2.5 rounded-xl border hover:bg-muted transition text-muted-foreground shrink-0 cursor-pointer">
+        <button
+          onClick={onBack}
+          className="p-2.5 rounded-xl border hover:bg-muted transition text-muted-foreground shrink-0 cursor-pointer"
+        >
           <ChevronRight className="h-5 w-5 rotate-180" />
         </button>
         <div>
@@ -346,8 +401,10 @@ function Subcategories({ parent, products, subs, onBack, onSelect }: {
         </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {subs.map(sub => {
-          const count = products.filter(p => p.parsedCat.parent === parent && p.parsedCat.sub === sub).length;
+        {subs.map((sub) => {
+          const count = products.filter(
+            (p) => p.parsedCat.parent === parent && p.parsedCat.sub === sub,
+          ).length;
           const img = subImage(sub);
           return (
             <button
@@ -383,37 +440,61 @@ function Subcategories({ parent, products, subs, onBack, onSelect }: {
   );
 }
 
-function SubcategoryProducts({ parent, sub, products, onBack, toRec }: {
+function SubcategoryProducts({
+  parent,
+  sub,
+  products,
+  onBack,
+  toRec,
+}: {
   parent: string;
   sub: string;
   products: any[];
   onBack: () => void;
   toRec: (p: any) => RecommendedProduct;
 }) {
-  const subProducts = products.filter(p => p.parsedCat.parent === parent && p.parsedCat.sub === sub);
+  const subProducts = products.filter(
+    (p) => p.parsedCat.parent === parent && p.parsedCat.sub === sub,
+  );
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onBack} className="p-2.5 rounded-xl border hover:bg-muted transition text-muted-foreground shrink-0 cursor-pointer">
+        <button
+          onClick={onBack}
+          className="p-2.5 rounded-xl border hover:bg-muted transition text-muted-foreground shrink-0 cursor-pointer"
+        >
           <ChevronRight className="h-5 w-5 rotate-180" />
         </button>
         <div>
           <h2 className="text-2xl font-bold text-primary">{sub}</h2>
-          <p className="text-sm text-muted-foreground">{parent} &rsaquo; {sub}</p>
+          <p className="text-sm text-muted-foreground">
+            {parent} &rsaquo; {sub}
+          </p>
         </div>
       </div>
       {subProducts.length === 0 ? (
-        <div className="bg-card border rounded-2xl p-12 text-center text-muted-foreground">Sem produtos disponíveis.</div>
+        <div className="bg-card border rounded-2xl p-12 text-center text-muted-foreground">
+          Sem produtos disponíveis.
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {subProducts.map(p => <ProductCard key={p.id} product={toRec(p)} showAddToCart />)}
+          {subProducts.map((p) => (
+            <ProductCard key={p.id} product={toRec(p)} showAddToCart />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function SearchResults({ products, query, sortBy, sortDir, onSortChange, onClearFilter }: {
+function SearchResults({
+  products,
+  query,
+  sortBy,
+  sortDir,
+  onSortChange,
+  onClearFilter,
+}: {
   products: any[];
   query: string;
   sortBy: "name" | "price";
@@ -436,7 +517,10 @@ function SearchResults({ products, query, sortBy, sortDir, onSortChange, onClear
             : `${products.length} ${products.length === 1 ? "resultado" : "resultados"}`}
           {query && (
             <span className="text-muted-foreground font-normal">
-              {" para "}<span className="font-semibold text-accent-foreground bg-accent/15 px-2 py-0.5 rounded">"{query}"</span>
+              {" para "}
+              <span className="font-semibold text-accent-foreground bg-accent/15 px-2 py-0.5 rounded">
+                "{query}"
+              </span>
             </span>
           )}
         </h2>
@@ -467,7 +551,7 @@ function SearchResults({ products, query, sortBy, sortDir, onSortChange, onClear
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map(p => (
+          {products.map((p) => (
             <ProductCard key={p.id} product={toRec(p)} showAddToCart />
           ))}
         </div>

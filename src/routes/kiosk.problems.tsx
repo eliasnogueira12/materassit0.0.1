@@ -17,7 +17,9 @@ function ProblemsPage() {
       let query = supabase.from("problems").select("*").eq("active", true).order("title");
       if (q.trim()) {
         const t = `%${q.trim()}%`;
-        query = query.or(`title.ilike.${t},description.ilike.${t},keywords.ilike.${t},category.ilike.${t}`);
+        query = query.or(
+          `title.ilike.${t},description.ilike.${t},keywords.ilike.${t},category.ilike.${t}`,
+        );
       }
       const { data, error } = await query.limit(60);
       if (error) throw error;
@@ -43,7 +45,10 @@ function ProblemsPage() {
           <p className="text-muted-foreground">A carregar...</p>
         ) : problems.length === 0 ? (
           <div className="col-span-full bg-card border-2 border-dashed rounded-2xl p-10 text-center">
-            <p className="text-xl">Não encontramos uma solução cadastrada para este problema. Por favor peça ajuda a um funcionário.</p>
+            <p className="text-xl">
+              Não encontramos uma solução cadastrada para este problema. Por favor peça ajuda a um
+              funcionário.
+            </p>
           </div>
         ) : (
           problems.map((p) => (
@@ -57,9 +62,13 @@ function ProblemsPage() {
                 <Wrench className="h-10 w-10 text-accent shrink-0" />
                 <div>
                   <h3 className="text-2xl font-semibold text-primary">{p.title}</h3>
-                  {p.category && <span className="text-sm text-muted-foreground">{p.category}</span>}
+                  {p.category && (
+                    <span className="text-sm text-muted-foreground">{p.category}</span>
+                  )}
                   {p.description && (
-                    <p className="mt-2 text-base text-muted-foreground line-clamp-2">{p.description}</p>
+                    <p className="mt-2 text-base text-muted-foreground line-clamp-2">
+                      {p.description}
+                    </p>
                   )}
                 </div>
               </div>

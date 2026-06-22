@@ -17,12 +17,15 @@ export const Route = createFileRoute("/kiosk/product/$id")({
 
 function toRec(p: any): RecommendedProduct {
   return {
-    id: p.id, name: p.name, category: p.category,
+    id: p.id,
+    name: p.name,
+    category: p.category,
     location: [p.section, p.aisle, p.shelf].filter(Boolean).join(" · "),
     price: p.price != null ? Number(p.price) : null,
     promotion: p.promotion_active && p.promotion_price != null ? Number(p.promotion_price) : null,
     stock: p.stock_visible ? p.stock : null,
-    image_url: p.image_url, description: p.description,
+    image_url: p.image_url,
+    description: p.description,
   };
 }
 
@@ -83,8 +86,13 @@ function ProductDetail() {
       <div className="px-6 py-16 text-center">
         <Package className="h-20 w-20 text-muted-foreground mx-auto mb-4 opacity-40" />
         <p className="text-2xl font-bold text-primary">Produto não disponível</p>
-        <p className="text-muted-foreground mt-2">Pode ter sido removido ou está temporariamente indisponível.</p>
-        <button onClick={() => router.history.back()} className="mt-6 px-6 py-3 rounded-xl bg-accent text-accent-foreground font-bold text-lg">
+        <p className="text-muted-foreground mt-2">
+          Pode ter sido removido ou está temporariamente indisponível.
+        </p>
+        <button
+          onClick={() => router.history.back()}
+          className="mt-6 px-6 py-3 rounded-xl bg-accent text-accent-foreground font-bold text-lg"
+        >
           Voltar
         </button>
       </div>
@@ -92,7 +100,11 @@ function ProductDetail() {
   }
   const p = data;
   const showPromo = p.promotion_active && p.promotion_price != null;
-  const displayPrice = showPromo ? Number(p.promotion_price) : p.price != null ? Number(p.price) : null;
+  const displayPrice = showPromo
+    ? Number(p.promotion_price)
+    : p.price != null
+      ? Number(p.price)
+      : null;
   const totalPrice = displayPrice != null ? displayPrice * qty : null;
   const stockLow = p.stock_visible && p.stock <= 5 && p.stock > 0;
   const outOfStock = p.stock_visible && p.stock <= 0;
@@ -100,7 +112,12 @@ function ProductDetail() {
   async function handleAddToCart() {
     if (!p.id || !displayPrice) return;
     for (let i = 0; i < qty; i++) {
-      await addProduct(p.id, p.name, displayPrice, [p.section, p.aisle, p.shelf].filter(Boolean).join(" · ") || null);
+      await addProduct(
+        p.id,
+        p.name,
+        displayPrice,
+        [p.section, p.aisle, p.shelf].filter(Boolean).join(" · ") || null,
+      );
     }
   }
 
@@ -108,7 +125,9 @@ function ProductDetail() {
     <div className="min-h-[calc(100vh-7rem)] px-4 md:px-6 py-6 max-w-6xl mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link to="/kiosk/search" className="hover:text-accent transition font-medium">Catálogo</Link>
+        <Link to="/kiosk/search" className="hover:text-accent transition font-medium">
+          Catálogo
+        </Link>
         {p.category && (
           <>
             <span>/</span>
@@ -133,9 +152,7 @@ function ProductDetail() {
         <div className="flex flex-col justify-between">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-primary leading-tight">{p.name}</h1>
-            {p.category && (
-              <p className="text-muted-foreground mt-1.5 text-base">{p.category}</p>
-            )}
+            {p.category && <p className="text-muted-foreground mt-1.5 text-base">{p.category}</p>}
 
             {/* Price */}
             {displayPrice != null && (
@@ -155,7 +172,9 @@ function ProductDetail() {
                     </span>
                   </>
                 ) : (
-                  <span className="text-4xl font-extrabold text-primary">{formatPrice(p.price)}</span>
+                  <span className="text-4xl font-extrabold text-primary">
+                    {formatPrice(p.price)}
+                  </span>
                 )}
               </div>
             )}
@@ -163,9 +182,17 @@ function ProductDetail() {
             {/* Stock */}
             {p.stock_visible && (
               <div className="mt-3 flex items-center gap-2">
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${p.stock > 0 ? "bg-emerald-500" : "bg-destructive"}`} />
-                <span className={`text-sm font-semibold ${stockLow ? "text-amber-600" : outOfStock ? "text-destructive" : "text-emerald-600"}`}>
-                  {outOfStock ? "Fora de stock" : stockLow ? `Apenas ${p.stock} em stock` : `Em stock (${p.stock})`}
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${p.stock > 0 ? "bg-emerald-500" : "bg-destructive"}`}
+                />
+                <span
+                  className={`text-sm font-semibold ${stockLow ? "text-amber-600" : outOfStock ? "text-destructive" : "text-emerald-600"}`}
+                >
+                  {outOfStock
+                    ? "Fora de stock"
+                    : stockLow
+                      ? `Apenas ${p.stock} em stock`
+                      : `Em stock (${p.stock})`}
                 </span>
               </div>
             )}
@@ -185,15 +212,12 @@ function ProductDetail() {
               <button
                 onClick={() => toggle(p.id, p.name)}
                 className={`kiosk-btn h-16 w-16 rounded-2xl border-2 flex items-center justify-center transition shrink-0 ${
-                  (favoriteIds.has(p.id))
+                  favoriteIds.has(p.id)
                     ? "bg-pink-50 border-pink-300 text-pink-500"
                     : "bg-card border-border text-muted-foreground hover:border-pink-300"
                 }`}
               >
-                <Heart
-                  className="h-7 w-7"
-                  fill={(favoriteIds.has(p.id)) ? "currentColor" : "none"}
-                />
+                <Heart className="h-7 w-7" fill={favoriteIds.has(p.id) ? "currentColor" : "none"} />
               </button>
               <div className="flex-1 bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 rounded-2xl p-4">
                 <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
@@ -201,15 +225,21 @@ function ProductDetail() {
                 </h3>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-background/60 rounded-xl p-2.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Secção</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Secção
+                    </div>
                     <div className="text-lg font-bold text-primary">{p.section || "—"}</div>
                   </div>
                   <div className="bg-background/60 rounded-xl p-2.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Corredor</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Corredor
+                    </div>
                     <div className="text-lg font-bold text-primary">{p.aisle || "—"}</div>
                   </div>
                   <div className="bg-background/60 rounded-xl p-2.5">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Prateleira</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Prateleira
+                    </div>
                     <div className="text-lg font-bold text-primary">{p.shelf || "—"}</div>
                   </div>
                 </div>
@@ -270,7 +300,6 @@ function ProductDetail() {
           </div>
         </section>
       )}
-
     </div>
   );
 }

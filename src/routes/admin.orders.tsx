@@ -43,7 +43,12 @@ function AdminOrders() {
       const result = await list({
         data: {
           token: searchToken || undefined,
-          status: (filterStatus || undefined) as "active" | "invoice_issued" | "paid" | "cancelled" | undefined,
+          status: (filterStatus || undefined) as
+            | "active"
+            | "invoice_issued"
+            | "paid"
+            | "cancelled"
+            | undefined,
           limit: 50,
           offset: 0,
         },
@@ -103,21 +108,29 @@ function AdminOrders() {
             </div>
 
             <div className="space-y-3">
-              {detail.items.map((item: { id: string; product_name: string; quantity: number; price: number; location: string | null }) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
-                >
-                  <div>
-                    <p className="font-semibold">{item.product_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.quantity}x {formatPrice(Number(item.price))}
-                      {item.location && ` — ${item.location}`}
-                    </p>
+              {detail.items.map(
+                (item: {
+                  id: string;
+                  product_name: string;
+                  quantity: number;
+                  price: number;
+                  location: string | null;
+                }) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <div>
+                      <p className="font-semibold">{item.product_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantity}x {formatPrice(Number(item.price))}
+                        {item.location && ` — ${item.location}`}
+                      </p>
+                    </div>
+                    <p className="font-bold">{formatPrice(Number(item.price) * item.quantity)}</p>
                   </div>
-                  <p className="font-bold">{formatPrice(Number(item.price) * item.quantity)}</p>
-                </div>
-              ))}
+                ),
+              )}
             </div>
 
             <div className="border-t-2 mt-4 pt-4 flex justify-between items-center">
@@ -200,44 +213,52 @@ function AdminOrders() {
         </div>
       ) : (
         <div className="space-y-3">
-          {data.orders.map((order: { id: string; token: string; status: string; total: number; created_at: string }) => {
-            const st = STATUS_LABEL[order.status] || {
-              label: order.status,
-              color: "bg-muted text-muted-foreground",
-            };
-            return (
-              <button
-                key={order.id}
-                onClick={() => setSelectedToken(order.token)}
-                className="w-full bg-card border rounded-2xl p-5 flex items-center justify-between hover:border-accent transition text-left"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-accent" />
+          {data.orders.map(
+            (order: {
+              id: string;
+              token: string;
+              status: string;
+              total: number;
+              created_at: string;
+            }) => {
+              const st = STATUS_LABEL[order.status] || {
+                label: order.status,
+                color: "bg-muted text-muted-foreground",
+              };
+              return (
+                <button
+                  key={order.id}
+                  onClick={() => setSelectedToken(order.token)}
+                  className="w-full bg-card border rounded-2xl p-5 flex items-center justify-between hover:border-accent transition text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-accent" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg text-primary">#{order.token}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString("pt-PT", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-lg text-primary">#{order.token}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(order.created_at).toLocaleDateString("pt-PT", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xl font-black">{formatPrice(Number(order.total))}</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${st.color}`}>
+                      {st.label}
+                    </span>
+                    <Eye className="h-5 w-5 text-muted-foreground" />
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xl font-black">{formatPrice(Number(order.total))}</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${st.color}`}>
-                    {st.label}
-                  </span>
-                  <Eye className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            },
+          )}
         </div>
       )}
     </div>

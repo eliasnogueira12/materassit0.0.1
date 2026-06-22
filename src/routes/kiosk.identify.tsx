@@ -1,6 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, UserPlus, LogIn, ArrowRight, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Sparkles,
+  UserPlus,
+  LogIn,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import { createCustomer, findCustomer, logHistory, useCustomer } from "@/lib/customer";
 import { toast } from "sonner";
 
@@ -95,7 +103,11 @@ function IdentifyPage() {
               disabled={busy}
               className="kiosk-btn bg-accent text-accent-foreground p-10 text-2xl rounded-3xl shadow-lg hover:scale-[1.02] transition disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-8 w-8 animate-spin" /> : <UserPlus className="h-8 w-8" />}
+              {busy ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              ) : (
+                <UserPlus className="h-8 w-8" />
+              )}
               Sim, é a primeira vez
             </button>
             <button
@@ -130,7 +142,11 @@ function IdentifyPage() {
               disabled={busy || !number}
               className="kiosk-btn bg-accent text-accent-foreground px-8 text-xl disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <ArrowRight className="h-6 w-6" />}
+              {busy ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <ArrowRight className="h-6 w-6" />
+              )}
             </button>
           </div>
           {error && (
@@ -141,7 +157,10 @@ function IdentifyPage() {
           )}
           <div className="mt-8 flex gap-3">
             <button
-              onClick={() => { setError(null); setNumber(""); }}
+              onClick={() => {
+                setError(null);
+                setNumber("");
+              }}
               className="px-5 py-3 rounded-xl border text-base"
             >
               Tentar novamente

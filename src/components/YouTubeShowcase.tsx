@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { listenSettingsChange } from "@/lib/settings-broadcast";
 
 const DEFAULT_VIDEOS = [
   { id: "_rWPvpP1jmU", title: "Lavadoras de alta pressão WR - Vito Pro-Power" },
@@ -52,6 +53,48 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
         },
         () => {},
       );
+  }, []);
+
+  // Auto-refresh when admin saves settings
+  useEffect(() => {
+    const unsub = listenSettingsChange((key) => {
+      if (key === "videos") {
+        supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "videos")
+          .maybeSingle()
+          .then(
+            ({ data }) => {
+              if (data?.value && Array.isArray(data.value)) {
+                const ids = data.value as string[];
+                setVideos(ids.map((id: string) => ({ id, title: id })));
+              }
+            },
+            () => {},
+          );
+      }
+      if (key === "theme") {
+        supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "theme")
+          .maybeSingle()
+          .then(
+            ({ data }) => {
+              if (data?.value) {
+                const t = data.value as any;
+                setTheme({
+                  gradientFrom: t.gradientFrom || "#1a1a2e",
+                  gradientTo: t.gradientTo || "#0f3460",
+                });
+              }
+            },
+            () => {},
+          );
+      }
+    });
+    return unsub;
   }, []);
 
   if (background) {
