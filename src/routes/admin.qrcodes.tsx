@@ -30,7 +30,9 @@ function AdminQRCodes() {
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    products.forEach((p) => { if (p.category) cats.add(p.category); });
+    products.forEach((p) => {
+      if (p.category) cats.add(p.category);
+    });
     return Array.from(cats).sort();
   }, [products]);
 
@@ -38,14 +40,19 @@ function AdminQRCodes() {
     return products.filter((p) => {
       if (search) {
         const term = search.toLowerCase();
-        if (!p.name.toLowerCase().includes(term) && !(p.category ?? "").toLowerCase().includes(term)) return false;
+        if (
+          !p.name.toLowerCase().includes(term) &&
+          !(p.category ?? "").toLowerCase().includes(term)
+        )
+          return false;
       }
       if (selectedCategory && p.category !== selectedCategory) return false;
       return true;
     });
   }, [products, search, selectedCategory]);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://materassist.vercel.app";
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://materassist.vercel.app";
 
   function handlePrint() {
     window.print();
@@ -80,7 +87,11 @@ function AdminQRCodes() {
           className="h-11 rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-accent transition"
         >
           <option value="">Todas as categorias</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
         <span className="text-sm text-muted-foreground">
           {filtered.length} produto{filtered.length !== 1 ? "s" : ""}
@@ -98,12 +109,18 @@ function AdminQRCodes() {
           <p className="text-lg font-medium">Nenhum produto encontrado</p>
         </div>
       ) : (
-        <div ref={printRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div
+          ref={printRef}
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+        >
           {filtered.map((p) => {
             const url = `${origin}/kiosk/product/${p.id}`;
             const location = [p.section, p.aisle, p.shelf].filter(Boolean).join(" · ");
             return (
-              <div key={p.id} className="bg-card border rounded-2xl p-3 flex flex-col items-center text-center print:border print:shadow-none print:rounded-none print:p-2">
+              <div
+                key={p.id}
+                className="bg-card border rounded-2xl p-3 flex flex-col items-center text-center print:border print:shadow-none print:rounded-none print:p-2"
+              >
                 <QRCode url={url} size={120} />
                 <p className="mt-2 text-xs font-semibold text-primary leading-tight line-clamp-2 min-h-[2rem]">
                   {p.name}

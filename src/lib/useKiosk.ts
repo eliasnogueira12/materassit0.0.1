@@ -25,9 +25,12 @@ export function useWakeLock() {
   useEffect(() => {
     if (typeof navigator === "undefined") return;
     if (!("wakeLock" in navigator)) return;
-    (navigator as any).wakeLock.request("screen").then((l: any) => {
-      lock.current = l;
-    }).catch(() => {});
+    (navigator as any).wakeLock
+      .request("screen")
+      .then((l: any) => {
+        lock.current = l;
+      })
+      .catch(() => {});
     return () => {
       lock.current?.release?.();
     };

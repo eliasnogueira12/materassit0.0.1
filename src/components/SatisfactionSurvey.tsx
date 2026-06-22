@@ -2,7 +2,13 @@ import { useState } from "react";
 import { Star, ThumbsUp, ThumbsDown, MessageSquareText, Send, Sparkles } from "lucide-react";
 import { logHistory, getStoredCustomer } from "@/lib/customer";
 
-export function SatisfactionSurvey({ orderId, onClose }: { orderId?: string; onClose?: () => void }) {
+export function SatisfactionSurvey({
+  orderId,
+  onClose,
+}: {
+  orderId?: string;
+  onClose?: () => void;
+}) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [foundProduct, setFoundProduct] = useState<boolean | null>(null);

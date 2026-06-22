@@ -44,7 +44,6 @@ export function clearKioskSession() {
   }
 }
 
-
 export function useCustomer() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -99,7 +98,9 @@ export async function logHistory(
   payload: Record<string, unknown> = {},
 ) {
   try {
-    await supabase.from("customer_history").insert({ customer_id, event_type, payload: payload as any });
+    await supabase
+      .from("customer_history")
+      .insert({ customer_id, event_type, payload: payload as any });
   } catch {
     /* silent */
   }

@@ -43,7 +43,8 @@ function AdminAssistantPage() {
         ...m,
         {
           role: "assistant",
-          content: "Não foi possível obter resposta do sistema. Verifica se a base de dados está acessível.",
+          content:
+            "Não foi possível obter resposta do sistema. Verifica se a base de dados está acessível.",
         },
       ]);
     } finally {

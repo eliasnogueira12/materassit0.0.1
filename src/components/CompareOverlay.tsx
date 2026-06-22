@@ -1,12 +1,7 @@
 import { X, ImageOff, Package, Tag, MapPin, ShoppingCart, ArrowLeftRight } from "lucide-react";
 import { useCompare } from "@/lib/useCompare";
 import { useCart } from "@/lib/useCart";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { products, remove } = useCompare();
@@ -15,7 +10,12 @@ export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () =
   if (products.length === 0) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -24,14 +24,20 @@ export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () =
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(products.length, 4)}, minmax(0, 1fr))` }}>
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          style={{ gridTemplateColumns: `repeat(${Math.min(products.length, 4)}, minmax(0, 1fr))` }}
+        >
           {products.map((p) => {
             const hasPromo = p.promotion != null;
             const price = hasPromo ? p.promotion! : p.price;
             const isAdding = adding.has(p.id);
 
             return (
-              <div key={p.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm flex flex-col">
+              <div
+                key={p.id}
+                className="bg-card border rounded-2xl overflow-hidden shadow-sm flex flex-col"
+              >
                 <div className="relative aspect-square bg-muted">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
@@ -133,8 +139,14 @@ export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () =
                       <td key={p.id} className="py-2">
                         {hasPromo ? (
                           <div>
-                            <span className="font-bold text-destructive">{p.promotion!.toFixed(2)} €</span>
-                            {p.price != null && <span className="ml-1 text-xs line-through text-muted-foreground">{p.price.toFixed(2)} €</span>}
+                            <span className="font-bold text-destructive">
+                              {p.promotion!.toFixed(2)} €
+                            </span>
+                            {p.price != null && (
+                              <span className="ml-1 text-xs line-through text-muted-foreground">
+                                {p.price.toFixed(2)} €
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="font-bold">{p.price?.toFixed(2) ?? "—"} €</span>
@@ -146,19 +158,25 @@ export function CompareOverlay({ open, onClose }: { open: boolean; onClose: () =
                 <tr>
                   <td className="py-2 pr-4 font-semibold text-muted-foreground">Categoria</td>
                   {products.map((p) => (
-                    <td key={p.id} className="py-2">{p.category ?? "—"}</td>
+                    <td key={p.id} className="py-2">
+                      {p.category ?? "—"}
+                    </td>
                   ))}
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 font-semibold text-muted-foreground">Localização</td>
                   {products.map((p) => (
-                    <td key={p.id} className="py-2">{p.location || "—"}</td>
+                    <td key={p.id} className="py-2">
+                      {p.location || "—"}
+                    </td>
                   ))}
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 font-semibold text-muted-foreground">Stock</td>
                   {products.map((p) => (
-                    <td key={p.id} className="py-2">{p.stock != null ? (p.stock > 0 ? `${p.stock} un.` : "Sem stock") : "—"}</td>
+                    <td key={p.id} className="py-2">
+                      {p.stock != null ? (p.stock > 0 ? `${p.stock} un.` : "Sem stock") : "—"}
+                    </td>
                   ))}
                 </tr>
               </tbody>

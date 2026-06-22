@@ -25,7 +25,7 @@ function AdminLogin() {
     try {
       const loginPromise = supabase.auth.signInWithPassword({ email, password });
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("TIMEOUT_ERROR")), 15000)
+        setTimeout(() => reject(new Error("TIMEOUT_ERROR")), 15000),
       );
 
       const result = await Promise.race([loginPromise, timeoutPromise]);
@@ -35,7 +35,9 @@ function AdminLogin() {
       navigate({ to: "/admin", replace: true });
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "TIMEOUT_ERROR") {
-        setErrorMsg("O início de sessão demorou demasiado tempo (limite de 15 segundos excedido). A ligação ao servidor do Supabase falhou ou a sua internet está muito lenta.");
+        setErrorMsg(
+          "O início de sessão demorou demasiado tempo (limite de 15 segundos excedido). A ligação ao servidor do Supabase falhou ou a sua internet está muito lenta.",
+        );
         toast.error("O limite de tempo de 15 segundos para iniciar sessão expirou!");
       } else {
         const msg = e instanceof Error ? e.message : "Erro desconhecido ao iniciar sessão";

@@ -3,7 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listOrders, markOrderPaid, getOrderByToken } from "@/lib/cart.functions";
 import { formatPrice } from "@/lib/format";
-import { Search, CheckCircle, XCircle, FileText, Package, Eye, ArrowLeft, ShoppingBag, MapPin, Printer } from "lucide-react";
+import {
+  Search,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Package,
+  Eye,
+  ArrowLeft,
+  ShoppingBag,
+  MapPin,
+  Printer,
+} from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/admin/orders")({
@@ -32,7 +43,7 @@ function AdminOrders() {
       const result = await list({
         data: {
           token: searchToken || undefined,
-          status: (filterStatus as any) || undefined,
+          status: (filterStatus || undefined) as "active" | "invoice_issued" | "paid" | "cancelled" | undefined,
           limit: 50,
           offset: 0,
         },
@@ -76,18 +87,27 @@ function AdminOrders() {
                 <h2 className="text-2xl font-bold text-primary">Fatura #{detail.order.token}</h2>
                 <p className="text-sm text-muted-foreground">
                   {new Date(detail.order.created_at).toLocaleDateString("pt-PT", {
-                    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-bold ${STATUS_LABEL[detail.order.status]?.color || ""}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-bold ${STATUS_LABEL[detail.order.status]?.color || ""}`}
+              >
                 {STATUS_LABEL[detail.order.status]?.label || detail.order.status}
               </span>
             </div>
 
             <div className="space-y-3">
-              {detail.items.map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0">
+              {detail.items.map((item: { id: string; product_name: string; quantity: number; price: number; location: string | null }) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
                   <div>
                     <p className="font-semibold">{item.product_name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -106,7 +126,10 @@ function AdminOrders() {
             </div>
 
             <div className="mt-6 flex gap-3">
-              <button onClick={() => window.print()} className="kiosk-btn bg-card border px-5 py-3 rounded-xl font-semibold flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="kiosk-btn bg-card border px-5 py-3 rounded-xl font-semibold flex items-center gap-2"
+              >
                 <Printer className="h-4 w-4" /> Imprimir
               </button>
               {detail.order.status === "invoice_issued" && (
@@ -131,7 +154,9 @@ function AdminOrders() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-primary">Faturas</h1>
-          <p className="text-muted-foreground">Consulte e valide faturas pré-pagas emitidas no quiosque.</p>
+          <p className="text-muted-foreground">
+            Consulte e valide faturas pré-pagas emitidas no quiosque.
+          </p>
         </div>
       </div>
 
@@ -168,13 +193,18 @@ function AdminOrders() {
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-xl font-medium">Nenhuma fatura encontrada</p>
           <p className="text-muted-foreground mt-2">
-            {searchToken ? "Tente outro número de fatura." : "Ainda não foram emitidas faturas no quiosque."}
+            {searchToken
+              ? "Tente outro número de fatura."
+              : "Ainda não foram emitidas faturas no quiosque."}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {data.orders.map((order: any) => {
-            const st = STATUS_LABEL[order.status] || { label: order.status, color: "bg-muted text-muted-foreground" };
+          {data.orders.map((order: { id: string; token: string; status: string; total: number; created_at: string }) => {
+            const st = STATUS_LABEL[order.status] || {
+              label: order.status,
+              color: "bg-muted text-muted-foreground",
+            };
             return (
               <button
                 key={order.id}
@@ -189,7 +219,11 @@ function AdminOrders() {
                     <p className="font-bold text-lg text-primary">#{order.token}</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(order.created_at).toLocaleDateString("pt-PT", {
-                        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>

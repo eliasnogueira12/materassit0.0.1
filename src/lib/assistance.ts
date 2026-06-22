@@ -18,7 +18,12 @@ export type AssistanceRequest = {
 
 export async function callStaff(
   kioskLabel = "Quiosque 1",
-  opts?: { message?: string; reason?: string; customer_id?: string | null; customer_number?: number | null },
+  opts?: {
+    message?: string;
+    reason?: string;
+    customer_id?: string | null;
+    customer_number?: number | null;
+  },
 ) {
   const expires_at = new Date(Date.now() + 120_000).toISOString();
   const { data, error } = await supabase

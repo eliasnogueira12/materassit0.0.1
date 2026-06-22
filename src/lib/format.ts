@@ -12,7 +12,12 @@ export function playChime() {
   if (typeof window === "undefined") return;
   try {
     const AC: typeof AudioContext =
-      (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ||
+      (
+        window as unknown as {
+          AudioContext: typeof AudioContext;
+          webkitAudioContext?: typeof AudioContext;
+        }
+      ).AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AC();
     const now = ctx.currentTime;

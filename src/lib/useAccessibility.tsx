@@ -8,8 +8,10 @@ type AccCtx = {
 };
 
 const Ctx = createContext<AccCtx>({
-  fontSize: 100, setFontSize: () => {},
-  highContrast: false, setHighContrast: () => {},
+  fontSize: 100,
+  setFontSize: () => {},
+  highContrast: false,
+  setHighContrast: () => {},
 });
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {

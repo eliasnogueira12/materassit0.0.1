@@ -65,17 +65,35 @@ export function ProductImageFloating({
         </span>
       )}
 
-      <div className={`absolute bottom-4 right-4 z-10 flex gap-1.5 ${fullscreen ? "bottom-6 right-6" : ""}`}>
-        <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.2))} className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm" title="Afastar">
+      <div
+        className={`absolute bottom-4 right-4 z-10 flex gap-1.5 ${fullscreen ? "bottom-6 right-6" : ""}`}
+      >
+        <button
+          onClick={() => setZoom((z) => Math.max(0.5, z - 0.2))}
+          className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm"
+          title="Afastar"
+        >
           <ZoomOut className="h-4 w-4" />
         </button>
-        <button onClick={() => setZoom((z) => Math.min(3, z + 0.2))} className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm" title="Aproximar">
+        <button
+          onClick={() => setZoom((z) => Math.min(3, z + 0.2))}
+          className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm"
+          title="Aproximar"
+        >
           <ZoomIn className="h-4 w-4" />
         </button>
-        <button onClick={() => setZoom(1)} className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm" title="Repor vista">
+        <button
+          onClick={() => setZoom(1)}
+          className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm"
+          title="Repor vista"
+        >
           <RotateCw className="h-4 w-4" />
         </button>
-        <button onClick={() => setFullscreen(!fullscreen)} className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm" title={fullscreen ? "Sair" : "Ecrã inteiro"}>
+        <button
+          onClick={() => setFullscreen(!fullscreen)}
+          className="h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm"
+          title={fullscreen ? "Sair" : "Ecrã inteiro"}
+        >
           {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </button>
       </div>

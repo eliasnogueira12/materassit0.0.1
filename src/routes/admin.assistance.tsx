@@ -32,7 +32,11 @@ function AssistancePage() {
     try {
       await setStatus({ data: { id, status } });
       toast.success(
-        status === "accepted" ? "Pedido aceite" : status === "refused" ? "Pedido recusado" : "Concluído",
+        status === "accepted"
+          ? "Pedido aceite"
+          : status === "refused"
+            ? "Pedido recusado"
+            : "Concluído",
       );
     } catch (e) {
       console.error("[admin.assistance] update error:", e);
@@ -64,7 +68,12 @@ function AssistancePage() {
         </div>
       ) : (
         <div className="space-y-8">
-          <Section title="A aguardar resposta" items={pending} onAction={update} variant="pending" />
+          <Section
+            title="A aguardar resposta"
+            items={pending}
+            onAction={update}
+            variant="pending"
+          />
           <Section title="Em atendimento" items={accepted} onAction={update} variant="accepted" />
         </div>
       )}
@@ -90,14 +99,9 @@ function Section({
       <div className="grid gap-3 md:grid-cols-2">
         {items.map((r) => {
           const expired =
-            r.status === "pending" &&
-            r.expires_at &&
-            new Date(r.expires_at).getTime() < Date.now();
+            r.status === "pending" && r.expires_at && new Date(r.expires_at).getTime() < Date.now();
           return (
-            <div
-              key={r.id}
-              className="bg-card border rounded-2xl p-4 animate-fade-in shadow-sm"
-            >
+            <div key={r.id} className="bg-card border rounded-2xl p-4 animate-fade-in shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -113,7 +117,9 @@ function Section({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{timeAgo(r.created_at)}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {timeAgo(r.created_at)}
+                  </div>
                   {r.reason && (
                     <p className="mt-2 text-sm">
                       <span className="text-muted-foreground">Motivo: </span>

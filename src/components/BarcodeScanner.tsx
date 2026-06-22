@@ -41,9 +41,17 @@ export function BarcodeScanner({
       setSupported(true);
       detectorRef.current = new BarcodeDetector({
         formats: [
-          "ean_13", "ean_8", "upc_a", "upc_e",
-          "code_128", "code_39", "codabar", "itf",
-          "qr_code", "data_matrix", "aztec",
+          "ean_13",
+          "ean_8",
+          "upc_a",
+          "upc_e",
+          "code_128",
+          "code_39",
+          "codabar",
+          "itf",
+          "qr_code",
+          "data_matrix",
+          "aztec",
         ],
       });
       startCamera();
@@ -106,7 +114,12 @@ export function BarcodeScanner({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Ler código de barras</DialogTitle>

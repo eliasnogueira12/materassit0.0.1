@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+} from "@/components/ui/dialog";
 import { BellRing, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 
 type Status = "pending" | "accepted" | "refused" | "expired" | "done";
@@ -42,7 +48,12 @@ export function AssistanceModal({
       .channel(`assistance-${requestId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "assistance_requests", filter: `id=eq.${requestId}` },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "assistance_requests",
+          filter: `id=eq.${requestId}`,
+        },
         (payload) => {
           const next = (payload.new as { status?: Status })?.status;
           if (next) setStatus(next);
@@ -99,7 +110,8 @@ export function AssistanceModal({
           <DialogDescription className="text-center text-base mt-2">
             {status === "pending" && "A enviar o teu pedido à equipa. Aguarda um momento."}
             {status === "accepted" && "Um funcionário aceitou o seu pedido e está a caminho."}
-            {status === "refused" && "O seu pedido foi recusado. Pode tentar novamente ou continuar a utilizar o assistente."}
+            {status === "refused" &&
+              "O seu pedido foi recusado. Pode tentar novamente ou continuar a utilizar o assistente."}
             {status === "expired" && "Podes tentar novamente dentro de instantes."}
             {status === "done" && "Esperamos ter ajudado."}
           </DialogDescription>
@@ -112,10 +124,16 @@ export function AssistanceModal({
               <Loader2 className="absolute -top-2 -right-2 h-7 w-7 animate-spin text-accent" />
             </div>
           )}
-          {status === "accepted" && <CheckCircle2 className="h-24 w-24 text-emerald-500 animate-scale-in" />}
-          {status === "refused" && <XCircle className="h-24 w-24 text-destructive animate-scale-in" />}
+          {status === "accepted" && (
+            <CheckCircle2 className="h-24 w-24 text-emerald-500 animate-scale-in" />
+          )}
+          {status === "refused" && (
+            <XCircle className="h-24 w-24 text-destructive animate-scale-in" />
+          )}
           {status === "expired" && <Clock className="h-24 w-24 text-amber-500 animate-scale-in" />}
-          {status === "done" && <CheckCircle2 className="h-24 w-24 text-emerald-500 animate-scale-in" />}
+          {status === "done" && (
+            <CheckCircle2 className="h-24 w-24 text-emerald-500 animate-scale-in" />
+          )}
         </div>
 
         {status === "pending" && (
@@ -135,10 +153,7 @@ export function AssistanceModal({
             >
               Tentar novamente
             </button>
-            <button
-              onClick={onClose}
-              className="px-5 py-3 rounded-xl border font-medium"
-            >
+            <button onClick={onClose} className="px-5 py-3 rounded-xl border font-medium">
               Continuar no assistente
             </button>
           </div>

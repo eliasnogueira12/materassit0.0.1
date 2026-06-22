@@ -5,7 +5,13 @@ import { useCart } from "@/lib/useCart";
 import { useFavorites } from "@/lib/useFavorites";
 import { useCompare } from "@/lib/useCompare";
 
-export function ProductCard({ product, showAddToCart }: { product: RecommendedProduct; showAddToCart?: boolean }) {
+export function ProductCard({
+  product,
+  showAddToCart,
+}: {
+  product: RecommendedProduct;
+  showAddToCart?: boolean;
+}) {
   const navigate = useNavigate();
   const { addProduct, adding } = useCart();
   const { favoriteIds, toggle } = useFavorites();
@@ -58,14 +64,30 @@ export function ProductCard({ product, showAddToCart }: { product: RecommendedPr
           </span>
         )}
         <button
-          onClick={(e) => { e.stopPropagation(); toggleCompare({ id: product.id, name: product.name, price: product.price, promotion: product.promotion, image_url: product.image_url, category: product.category, location: product.location, description: product.description, stock: product.stock }); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleCompare({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              promotion: product.promotion,
+              image_url: product.image_url,
+              category: product.category,
+              location: product.location,
+              description: product.description,
+              stock: product.stock,
+            });
+          }}
           className={`absolute top-2 right-12 h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm ${isComparing ? "ring-2 ring-accent" : ""}`}
           title="Comparar"
         >
           <ArrowLeftRight className={`h-4 w-4 ${isComparing ? "text-accent" : "text-gray-400"}`} />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); toggle(product.id, product.name); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle(product.id, product.name);
+          }}
           className="absolute top-2 right-2 h-9 w-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition shadow-sm"
         >
           <Heart

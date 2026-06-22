@@ -33,14 +33,16 @@ export const getOrCreateActiveOrder = createServerFn({ method: "GET" })
 
 export const addToOrder = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({
-      orderId: z.string().uuid(),
-      productId: z.string().uuid(),
-      productName: z.string().min(1),
-      price: z.number().positive(),
-      location: z.string().nullable().optional(),
-      quantity: z.number().int().positive().default(1),
-    }).parse(d)
+    z
+      .object({
+        orderId: z.string().uuid(),
+        productId: z.string().uuid(),
+        productName: z.string().min(1),
+        price: z.number().positive(),
+        location: z.string().nullable().optional(),
+        quantity: z.number().int().positive().default(1),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const { data: existing } = await supabaseAdmin
@@ -57,16 +59,14 @@ export const addToOrder = createServerFn({ method: "POST" })
         .eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabaseAdmin
-        .from("order_items")
-        .insert({
-          order_id: data.orderId,
-          product_id: data.productId,
-          product_name: data.productName,
-          price: data.price,
-          location: data.location ?? null,
-          quantity: data.quantity,
-        });
+      const { error } = await supabaseAdmin.from("order_items").insert({
+        order_id: data.orderId,
+        product_id: data.productId,
+        product_name: data.productName,
+        price: data.price,
+        location: data.location ?? null,
+        quantity: data.quantity,
+      });
       if (error) throw error;
     }
 
@@ -76,11 +76,13 @@ export const addToOrder = createServerFn({ method: "POST" })
 
 export const updateOrderItemQty = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({
-      itemId: z.string().uuid(),
-      orderId: z.string().uuid(),
-      quantity: z.number().int().positive(),
-    }).parse(d)
+    z
+      .object({
+        itemId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        quantity: z.number().int().positive(),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const { error } = await supabaseAdmin
@@ -94,13 +96,10 @@ export const updateOrderItemQty = createServerFn({ method: "POST" })
 
 export const removeFromOrder = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ itemId: z.string().uuid(), orderId: z.string().uuid() }).parse(d)
+    z.object({ itemId: z.string().uuid(), orderId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { error } = await supabaseAdmin
-      .from("order_items")
-      .delete()
-      .eq("id", data.itemId);
+    const { error } = await supabaseAdmin.from("order_items").delete().eq("id", data.itemId);
     if (error) throw error;
     await recalcTotal(data.orderId);
     return { success: true };
@@ -112,18 +111,17 @@ async function recalcTotal(orderId: string) {
     .select("price, quantity")
     .eq("order_id", orderId);
   const total = (items ?? []).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-  await supabaseAdmin
-    .from("orders")
-    .update({ total })
-    .eq("id", orderId);
+  await supabaseAdmin.from("orders").update({ total }).eq("id", orderId);
 }
 
 export const checkoutOrder = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({
-      orderId: z.string().uuid(),
-      contactEmail: z.string().email().optional().or(z.literal("")),
-    }).parse(d)
+    z
+      .object({
+        orderId: z.string().uuid(),
+        contactEmail: z.string().email().optional().or(z.literal("")),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const { data: items } = await supabaseAdmin
@@ -136,16 +134,11 @@ export const checkoutOrder = createServerFn({ method: "POST" })
 
     const token = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
 
-    const updateFields: Record<string, unknown> = { status: "invoice_issued", token };
-    if (data.contactEmail) {
-      updateFields.contact_email = data.contactEmail;
-    }
-
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .update(updateFields)
+      .update({ status: "invoice_issued", token })
       .eq("id", data.orderId)
-      .select("id, total, token, created_at, contact_email")
+      .select("id, total, token, created_at")
       .single();
     if (error) throw error;
 
@@ -154,7 +147,7 @@ export const checkoutOrder = createServerFn({ method: "POST" })
       total: order.total,
       orderId: order.id,
       createdAt: order.created_at,
-      contactEmail: order.contact_email ?? null,
+      contactEmail: null,
     };
   });
 
@@ -181,12 +174,14 @@ export const getOrderByToken = createServerFn({ method: "GET" })
 
 export const listOrders = createServerFn({ method: "GET" })
   .inputValidator((d) =>
-    z.object({
-      token: z.string().max(20).optional(),
-      status: z.enum(["active", "invoice_issued", "paid", "cancelled"]).optional(),
-      limit: z.number().int().min(1).max(100).default(50),
-      offset: z.number().int().min(0).default(0),
-    }).parse(d)
+    z
+      .object({
+        token: z.string().max(20).optional(),
+        status: z.enum(["active", "invoice_issued", "paid", "cancelled"]).optional(),
+        limit: z.number().int().min(1).max(100).default(50),
+        offset: z.number().int().min(0).default(0),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     let query = supabaseAdmin
@@ -200,7 +195,8 @@ export const listOrders = createServerFn({ method: "GET" })
       query = query.eq("status", data.status);
     }
 
-    query = query.order("created_at", { ascending: false })
+    query = query
+      .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
 
     const { data: orders, error, count } = await query;

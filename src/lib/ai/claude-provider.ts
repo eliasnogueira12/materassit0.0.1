@@ -9,23 +9,36 @@ export class ClaudeProvider implements AIProvider {
     this.model = model;
   }
 
-  private buildBody(params: {
-    systemPrompt: string;
-    message: string;
-    history: AIMessage[];
-    tools?: any[];
-  }, stream = false) {
+  private buildBody(
+    params: {
+      systemPrompt: string;
+      message: string;
+      history: AIMessage[];
+      tools?: any[];
+    },
+    stream = false,
+  ) {
     const messages = [
       ...params.history.map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: params.message },
     ];
 
     const claudeTools = params.tools?.map((t) => {
-      if (t.type === "function") return { name: t.function.name, description: t.function.description, input_schema: t.function.parameters };
+      if (t.type === "function")
+        return {
+          name: t.function.name,
+          description: t.function.description,
+          input_schema: t.function.parameters,
+        };
       return t;
     });
 
-    const body: any = { model: this.model, system: params.systemPrompt, messages, max_tokens: 1500 };
+    const body: any = {
+      model: this.model,
+      system: params.systemPrompt,
+      messages,
+      max_tokens: 1500,
+    };
     if (claudeTools && claudeTools.length > 0) body.tools = claudeTools;
     if (stream) body.stream = true;
     return body;

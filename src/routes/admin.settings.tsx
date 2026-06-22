@@ -6,9 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Key, FileText, Youtube, Palette, Plus, Trash2, ShieldAlert, Globe } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettingsPage,
@@ -39,7 +47,7 @@ function extractYoutubeId(urlOrId: string): string | null {
   if (trimmed.length === 11 && !trimmed.includes("/") && !trimmed.includes(".")) {
     return trimmed;
   }
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = trimmed.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
 }
@@ -54,9 +62,15 @@ function AdminSettingsPage() {
 
   // Phrase States
   const [phrases, setPhrases] = useState<Phrases>({
-    pt: { welcome: "Bem-vindo à MarquesMater", subtitle: "Toque para descobrir o produto certo para si." },
+    pt: {
+      welcome: "Bem-vindo à MarquesMater",
+      subtitle: "Toque para descobrir o produto certo para si.",
+    },
     en: { welcome: "Welcome to MarquesMater", subtitle: "Tap to find the right product for you." },
-    es: { welcome: "Bienvenido a MarquesMater", subtitle: "Toque para encontrar el producto adecuado." },
+    es: {
+      welcome: "Bienvenido a MarquesMater",
+      subtitle: "Toque para encontrar el producto adecuado.",
+    },
   });
   const [selectedLang, setSelectedLang] = useState<Lang>("pt");
 
@@ -73,36 +87,57 @@ function AdminSettingsPage() {
   // Load Settings from Supabase
   useEffect(() => {
     // Load phrases
-    supabase.from("settings").select("value").eq("key", "phrases").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) {
-          setPhrases(data.value as unknown as Phrases);
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "phrases")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            setPhrases(data.value as unknown as Phrases);
+          }
+        },
+        () => {},
+      );
 
     // Load videos
-    supabase.from("settings").select("value").eq("key", "videos").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value && Array.isArray(data.value)) {
-          setVideos(data.value as string[]);
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "videos")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value && Array.isArray(data.value)) {
+            setVideos(data.value as string[]);
+          }
+        },
+        () => {},
+      );
 
     // Load theme
-    supabase.from("settings").select("value").eq("key", "theme").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) {
-          const t = data.value as unknown as ThemeSettings;
-          setTheme({
-            gradientFrom: t.gradientFrom || "#1a1a2e",
-            gradientTo: t.gradientTo || "#0f3460",
-          });
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "theme")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const t = data.value as unknown as ThemeSettings;
+            setTheme({
+              gradientFrom: t.gradientFrom || "#1a1a2e",
+              gradientTo: t.gradientTo || "#0f3460",
+            });
+          }
+        },
+        () => {},
+      );
   }, []);
 
   // Save Settings Helper
-  async function saveSetting(key: string, value: any, successMsg: string) {
+  async function saveSetting(key: string, value: Json, successMsg: string) {
     setBusy(true);
     try {
       const { error } = await supabase
@@ -110,9 +145,10 @@ function AdminSettingsPage() {
         .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
       if (error) throw error;
       toast.success(successMsg);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
       console.error(`[Settings] Erro ao guardar ${key}:`, e);
-      toast.error(`Erro ao guardar: ${e.message}`);
+      toast.error(`Erro ao guardar: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -146,9 +182,10 @@ function AdminSettingsPage() {
       setNewEmail("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
       console.error("[Settings] Erro ao atualizar credenciais:", e);
-      toast.error(`Erro ao atualizar credenciais: ${e.message}`);
+      toast.error(`Erro ao atualizar credenciais: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -210,10 +247,16 @@ function AdminSettingsPage() {
 
       <Tabs defaultValue="credentials" className="w-full">
         <TabsList className="grid w-full grid-cols-4 gap-2 bg-muted p-1 rounded-xl">
-          <TabsTrigger value="credentials" className="flex items-center gap-2 py-2.5 rounded-lg text-sm">
+          <TabsTrigger
+            value="credentials"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
             <Key className="h-4 w-4" /> Credenciais
           </TabsTrigger>
-          <TabsTrigger value="phrases" className="flex items-center gap-2 py-2.5 rounded-lg text-sm">
+          <TabsTrigger
+            value="phrases"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
             <FileText className="h-4 w-4" /> Textos
           </TabsTrigger>
           <TabsTrigger value="videos" className="flex items-center gap-2 py-2.5 rounded-lg text-sm">
@@ -276,7 +319,9 @@ function AdminSettingsPage() {
                     <div>
                       <p className="font-bold">Aviso sobre alteração de email</p>
                       <p className="opacity-90 leading-relaxed mt-0.5">
-                        O Supabase irá enviar emails de confirmação tanto para o seu email atual como para o novo email. A alteração só será efetivada após confirmar ambos os links de verificação.
+                        O Supabase irá enviar emails de confirmação tanto para o seu email atual
+                        como para o novo email. A alteração só será efetivada após confirmar ambos
+                        os links de verificação.
                       </p>
                     </div>
                   </div>
@@ -310,7 +355,8 @@ function AdminSettingsPage() {
                       onClick={() => setSelectedLang(l)}
                       className={`px-3 py-1 rounded text-xs font-bold transition uppercase ${selectedLang === l ? "bg-card text-card-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                     >
-                      <span className="mr-1">{l === "pt" ? "🇵🇹" : l === "en" ? "🇬🇧" : "🇪🇸"}</span> {l}
+                      <span className="mr-1">{l === "pt" ? "🇵🇹" : l === "en" ? "🇬🇧" : "🇪🇸"}</span>{" "}
+                      {l}
                     </button>
                   ))}
                 </div>
@@ -350,7 +396,9 @@ function AdminSettingsPage() {
                   Pré-visualização do texto
                 </span>
                 <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#0f3460] text-white text-center shadow-md">
-                  <h3 className="text-2xl font-extrabold truncate">{phrases[selectedLang]?.welcome}</h3>
+                  <h3 className="text-2xl font-extrabold truncate">
+                    {phrases[selectedLang]?.welcome}
+                  </h3>
                   <p className="mt-2 text-sm opacity-80 leading-relaxed max-w-md mx-auto line-clamp-2">
                     {phrases[selectedLang]?.subtitle}
                   </p>
@@ -371,7 +419,8 @@ function AdminSettingsPage() {
             <CardHeader>
               <CardTitle>Vídeos de Destaque</CardTitle>
               <CardDescription>
-                Adicione ou remova vídeos do YouTube que aparecem em segundo plano ou na galeria do quiosque.
+                Adicione ou remova vídeos do YouTube que aparecem em segundo plano ou na galeria do
+                quiosque.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -387,7 +436,11 @@ function AdminSettingsPage() {
                     Exemplo de link: https://www.youtube.com/watch?v=_rWPvpP1jmU
                   </span>
                 </div>
-                <Button onClick={handleAddVideo} disabled={busy || !newVideoInput.trim()} className="h-10">
+                <Button
+                  onClick={handleAddVideo}
+                  disabled={busy || !newVideoInput.trim()}
+                  className="h-10"
+                >
                   <Plus className="h-4 w-4 mr-1.5" /> Adicionar
                 </Button>
               </div>
@@ -403,7 +456,10 @@ function AdminSettingsPage() {
                     </p>
                   ) : (
                     videos.map((id) => (
-                      <div key={id} className="flex gap-3 items-center p-3 rounded-xl border bg-card shadow-sm group">
+                      <div
+                        key={id}
+                        className="flex gap-3 items-center p-3 rounded-xl border bg-card shadow-sm group"
+                      >
                         <div className="w-24 aspect-video rounded overflow-hidden bg-black/10 shrink-0 relative">
                           <img
                             src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`}
@@ -411,12 +467,15 @@ function AdminSettingsPage() {
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               // Fallback if no thumbnail found
-                              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop";
+                              (e.target as HTMLImageElement).src =
+                                "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop";
                             }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-mono truncate block text-muted-foreground">ID: {id}</span>
+                          <span className="text-xs font-mono truncate block text-muted-foreground">
+                            ID: {id}
+                          </span>
                           <a
                             href={`https://youtube.com/watch?v=${id}`}
                             target="_blank"
@@ -449,7 +508,8 @@ function AdminSettingsPage() {
             <CardHeader>
               <CardTitle>Temas e Cores de Fundo</CardTitle>
               <CardDescription>
-                Configure as cores do gradiente de fundo que é mostrado quando não há vídeos ou na área de início.
+                Configure as cores do gradiente de fundo que é mostrado quando não há vídeos ou na
+                área de início.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

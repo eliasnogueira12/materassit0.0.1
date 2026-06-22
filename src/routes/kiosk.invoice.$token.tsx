@@ -54,7 +54,7 @@ function InvoicePage() {
   return <Receipt order={order} items={items} />;
 }
 
-function Receipt({ order, items }: { order: any; items: any[] }) {
+function Receipt({ order, items }: { order: { id: string; token: string; total: number; created_at: string; status: string }; items: { id: string; product_name: string; quantity: number; price: number; location: string | null }[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [showQR, setShowQR] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -97,7 +97,7 @@ function Receipt({ order, items }: { order: any; items: any[] }) {
           </div>
 
           <div className="space-y-0.5 text-[11px] text-gray-500">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <div key={item.id} className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0">
                 <div className="flex-1 min-w-0 pr-3">
                   <p className="font-semibold text-gray-800 text-sm">{item.product_name}</p>

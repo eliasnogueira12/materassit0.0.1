@@ -14,25 +14,33 @@ export function getAIProvider(): AIProvider {
   // 1) Explicit provider selection
   if (providerType === "gemini") {
     if (!geminiApiKey) {
-      throw new Error("Variável AI_PROVIDER definida para 'gemini', mas GEMINI_API_KEY não foi configurada.");
+      throw new Error(
+        "Variável AI_PROVIDER definida para 'gemini', mas GEMINI_API_KEY não foi configurada.",
+      );
     }
     return new GeminiProvider(geminiApiKey);
   }
   if (providerType === "openai") {
     if (!openAiApiKey) {
-      throw new Error("Variável AI_PROVIDER definida para 'openai', mas OPENAI_API_KEY não foi configurada.");
+      throw new Error(
+        "Variável AI_PROVIDER definida para 'openai', mas OPENAI_API_KEY não foi configurada.",
+      );
     }
     return new OpenAIProvider(openAiApiKey);
   }
   if (providerType === "claude") {
     if (!claudeApiKey) {
-      throw new Error("Variável AI_PROVIDER definida para 'claude', mas CLAUDE_API_KEY ou ANTHROPIC_API_KEY não foi configurada.");
+      throw new Error(
+        "Variável AI_PROVIDER definida para 'claude', mas CLAUDE_API_KEY ou ANTHROPIC_API_KEY não foi configurada.",
+      );
     }
     return new ClaudeProvider(claudeApiKey);
   }
   if (providerType === "groq") {
     if (!groqApiKey) {
-      throw new Error("Variável AI_PROVIDER definida para 'groq', mas GROQ_API_KEY não foi configurada.");
+      throw new Error(
+        "Variável AI_PROVIDER definida para 'groq', mas GROQ_API_KEY não foi configurada.",
+      );
     }
     return new GroqProvider(groqApiKey);
   }
@@ -53,6 +61,6 @@ export function getAIProvider(): AIProvider {
 
   // 3) Fatal configuration error
   throw new Error(
-    "Nenhum fornecedor de Inteligência Artificial configurado. Por favor, adicione GEMINI_API_KEY no ficheiro .env para ativar o assistente."
+    "Nenhum fornecedor de Inteligência Artificial configurado. Por favor, adicione GEMINI_API_KEY no ficheiro .env para ativar o assistente.",
   );
 }

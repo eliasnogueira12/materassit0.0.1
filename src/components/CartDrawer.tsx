@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { ShoppingCart, Plus, Minus, Trash2, X, ArrowRight, Package, MapPin, Tag, ShoppingBag } from "lucide-react";
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  X,
+  ArrowRight,
+  Package,
+  MapPin,
+  Tag,
+  ShoppingBag,
+} from "lucide-react";
 import { useCart } from "@/lib/useCart";
 import { formatPrice } from "@/lib/format";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 export function CartFAB() {
   const { itemCount, items } = useCart();
@@ -39,7 +51,9 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   async function handleCheckout() {
@@ -51,7 +65,9 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
         navigate({ to: "/kiosk/invoice/$token", params: { token: result.token } });
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
       console.error("[Cart] Checkout error:", err);
+      toast.error(`Erro ao gerar fatura: ${message}`);
     } finally {
       setCheckingOut(false);
     }
@@ -60,7 +76,10 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in"
+          onClick={onClose}
+        />
       )}
       <div
         ref={panelRef}
@@ -80,26 +99,43 @@ function CartPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
               <ShoppingCart className="h-20 w-20 opacity-30" />
               <p className="text-xl font-medium">Carrinho vazio</p>
-              <p className="text-sm text-center max-w-64">Adicione produtos através do assistente ou da pesquisa de produtos.</p>
+              <p className="text-sm text-center max-w-64">
+                Adicione produtos através do assistente ou da pesquisa de produtos.
+              </p>
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="bg-card border rounded-2xl p-4 flex items-center gap-4 animate-fade-in">
+              <div
+                key={item.id}
+                className="bg-card border rounded-2xl p-4 flex items-center gap-4 animate-fade-in"
+              >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-primary text-base leading-tight line-clamp-2">{item.product_name}</p>
+                  <p className="font-semibold text-primary text-base leading-tight line-clamp-2">
+                    {item.product_name}
+                  </p>
                   {item.location && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <MapPin className="h-3 w-3" /> {item.location}
                     </p>
                   )}
-                  <p className="text-sm font-bold text-accent mt-1">{formatPrice(Number(item.price))}</p>
+                  <p className="text-sm font-bold text-accent mt-1">
+                    {formatPrice(Number(item.price))}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <button
-                    onClick={() => item.quantity > 1 ? updateQty(item.id, item.quantity - 1) : removeItem(item.id)}
+                    onClick={() =>
+                      item.quantity > 1
+                        ? updateQty(item.id, item.quantity - 1)
+                        : removeItem(item.id)
+                    }
                     className="kiosk-btn h-14 w-14 rounded-full border-2 flex items-center justify-center hover:bg-muted transition text-xl"
                   >
-                    {item.quantity > 1 ? <Minus className="h-6 w-6" /> : <Trash2 className="h-6 w-6 text-destructive" />}
+                    {item.quantity > 1 ? (
+                      <Minus className="h-6 w-6" />
+                    ) : (
+                      <Trash2 className="h-6 w-6 text-destructive" />
+                    )}
                   </button>
                   <span className="w-10 text-center font-extrabold text-2xl">{item.quantity}</span>
                   <button

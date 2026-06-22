@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -47,7 +43,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Algo correu mal. Por favor tente novamente.
         </p>
         <button
-          onClick={() => { router.invalidate(); reset(); }}
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
           className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
           Tentar novamente
@@ -63,13 +62,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "MaterAssist — Encontre o produto certo em segundos" },
-      { name: "description", content: "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja." },
+      {
+        name: "description",
+        content:
+          "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja.",
+      },
       { property: "og:title", content: "MaterAssist — Encontre o produto certo em segundos" },
       { name: "twitter:title", content: "MaterAssist — Encontre o produto certo em segundos" },
-      { property: "og:description", content: "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja." },
-      { name: "twitter:description", content: "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/ymMVgsHphmTFQ8ZTOgQlKglUsgw2/social-images/social-1779794787993-logo_semfundo.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/ymMVgsHphmTFQ8ZTOgQlKglUsgw2/social-images/social-1779794787993-logo_semfundo.webp" },
+      {
+        property: "og:description",
+        content:
+          "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Quiosque de autoatendimento da MarquesMater. Encontre produtos e soluções dentro da loja.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/ymMVgsHphmTFQ8ZTOgQlKglUsgw2/social-images/social-1779794787993-logo_semfundo.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/ymMVgsHphmTFQ8ZTOgQlKglUsgw2/social-images/social-1779794787993-logo_semfundo.webp",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
@@ -87,8 +106,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt">
-      <head><HeadContent /></head>
-      <body>{children}<Scripts /></body>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }
@@ -112,7 +136,9 @@ function AuthSync() {
   const router = useRouter();
   const queryClient = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
       router.invalidate();
       queryClient.invalidateQueries();
     });

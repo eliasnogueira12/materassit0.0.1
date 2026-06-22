@@ -31,7 +31,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     contact_staff: "Chamar funcionário para assistência",
     try_again: "Tenta de novo",
     error_no_results: "Não encontrei nada no catálogo para a sua pesquisa.",
-    error_call_staff: "Não foi possível chamar a equipa agora. Tenta de novo ou dirige-te a um funcionário na loja.",
+    error_call_staff:
+      "Não foi possível chamar a equipa agora. Tenta de novo ou dirige-te a um funcionário na loja.",
     assistant_request: "Pedido do assistente",
     font_size: "Tamanho da letra",
     high_contrast: "Alto contraste",
@@ -63,7 +64,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     contact_staff: "Call a staff member for assistance",
     try_again: "Try again",
     error_no_results: "I couldn't find anything in the catalog for your search.",
-    error_call_staff: "Could not call the team now. Try again or speak to a staff member in the store.",
+    error_call_staff:
+      "Could not call the team now. Try again or speak to a staff member in the store.",
     assistant_request: "Assistant request",
     font_size: "Font size",
     high_contrast: "High contrast",
@@ -95,7 +97,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     contact_staff: "Llame a un empleado para asistencia",
     try_again: "Intente de nuevo",
     error_no_results: "No encontré nada en el catálogo para su búsqueda.",
-    error_call_staff: "No fue posible llamar al equipo ahora. Intente de nuevo o hable con un empleado en la tienda.",
+    error_call_staff:
+      "No fue posible llamar al equipo ahora. Intente de nuevo o hable con un empleado en la tienda.",
     assistant_request: "Solicitud del asistente",
     font_size: "Tamaño de letra",
     high_contrast: "Alto contraste",

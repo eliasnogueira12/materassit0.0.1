@@ -9,12 +9,15 @@ export class GeminiProvider implements AIProvider {
     this.model = model;
   }
 
-  private buildBody(params: {
-    systemPrompt: string;
-    message: string;
-    history: AIMessage[];
-    tools?: any[];
-  }, stream = false) {
+  private buildBody(
+    params: {
+      systemPrompt: string;
+      message: string;
+      history: AIMessage[];
+      tools?: any[];
+    },
+    stream = false,
+  ) {
     const messages = [
       { role: "system", content: params.systemPrompt },
       ...params.history,
@@ -48,7 +51,7 @@ export class GeminiProvider implements AIProvider {
         const res = await fetch(apiEndpoint, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
@@ -115,7 +118,7 @@ export class GeminiProvider implements AIProvider {
       const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),

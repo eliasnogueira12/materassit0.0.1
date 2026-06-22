@@ -7,7 +7,8 @@ const DEFAULT_VIDEOS = [
 ];
 
 function embedUrl(id: string) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://materassist.vercel.app";
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://materassist.vercel.app";
   return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&origin=${encodeURIComponent(origin)}&widgetid=1&playlist=${id}`;
 }
 
@@ -18,34 +19,48 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
 
   useEffect(() => {
     // Fetch videos
-    supabase.from("settings").select("value").eq("key", "videos").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value && Array.isArray(data.value)) {
-          const ids = data.value as string[];
-          setVideos(ids.map((id: string) => ({ id, title: id })));
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "videos")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value && Array.isArray(data.value)) {
+            const ids = data.value as string[];
+            setVideos(ids.map((id: string) => ({ id, title: id })));
+          }
+        },
+        () => {},
+      );
 
     // Fetch theme
-    supabase.from("settings").select("value").eq("key", "theme").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) {
-          const t = data.value as any;
-          setTheme({
-            gradientFrom: t.gradientFrom || "#1a1a2e",
-            gradientTo: t.gradientTo || "#0f3460"
-          });
-        }
-      }, () => {});
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "theme")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const t = data.value as any;
+            setTheme({
+              gradientFrom: t.gradientFrom || "#1a1a2e",
+              gradientTo: t.gradientTo || "#0f3460",
+            });
+          }
+        },
+        () => {},
+      );
   }, []);
 
   if (background) {
     const activeVideo = videos.find((v) => !failed.has(v.id));
     return (
-      <div 
+      <div
         className="fixed inset-0 z-0 transition-colors duration-500"
         style={{
-          background: `linear-gradient(to bottom right, ${theme.gradientFrom}, ${theme.gradientTo})`
+          background: `linear-gradient(to bottom right, ${theme.gradientFrom}, ${theme.gradientTo})`,
         }}
       >
         {activeVideo && (
@@ -90,9 +105,7 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
-                <p className="text-xs font-semibold text-white/80 truncate">
-                  {video.title}
-                </p>
+                <p className="text-xs font-semibold text-white/80 truncate">{video.title}</p>
               </div>
             </div>
           ),

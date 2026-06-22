@@ -1,7 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Search, Trash2, Lock, LockOpen, Save, X, Eye, UserPlus, Activity, ShieldCheck } from "lucide-react";
+import {
+  Users,
+  Search,
+  Trash2,
+  Lock,
+  LockOpen,
+  Save,
+  X,
+  Eye,
+  UserPlus,
+  Activity,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +27,6 @@ import {
 export const Route = createFileRoute("/admin/customers")({
   component: CustomersPage,
 });
-
 
 type Customer = {
   id: string;
@@ -58,7 +69,9 @@ function CustomersPage() {
     setLoading(false);
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+  }, []);
 
   const filtered = useMemo(() => {
     let list = items;
@@ -67,7 +80,8 @@ function CustomersPage() {
       list = list.filter((c) => String(c.customer_number).includes(q) || c.id.includes(q));
     }
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     if (filterTab === "active") {
@@ -81,7 +95,8 @@ function CustomersPage() {
   }, [items, search, filterTab]);
 
   const stats = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const activeToday = items.filter((c) => new Date(c.last_seen_at) >= today).length;
     const blocked = items.filter((c) => c.blocked).length;
     return { total: items.length, activeToday, blocked };
@@ -89,14 +104,22 @@ function CustomersPage() {
 
   async function createManual() {
     const { data, error } = await supabase.rpc("create_customer");
-    if (error) { toast.error("Não foi possível criar."); return; }
+    if (error) {
+      toast.error("Não foi possível criar.");
+      return;
+    }
     const row = (data as any)?.[0];
     if (row?.customer_number) toast.success(`Cliente #${row.customer_number} criado.`);
     refresh();
   }
 
   async function clearInactiveSessions() {
-    if (!confirm("Deseja limpar todos os clientes inativos (sem visitas nos últimos 15 dias, não bloqueados e sem notas internas)?")) return;
+    if (
+      !confirm(
+        "Deseja limpar todos os clientes inativos (sem visitas nos últimos 15 dias, não bloqueados e sem notas internas)?",
+      )
+    )
+      return;
     setLoading(true);
     try {
       const fifteenDaysAgo = new Date();
@@ -135,9 +158,24 @@ function CustomersPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={<Users className="h-5 w-5" />} label="Total de clientes" value={stats.total} tone="primary" />
-        <StatCard icon={<Activity className="h-5 w-5" />} label="Ativos hoje" value={stats.activeToday} tone="emerald" />
-        <StatCard icon={<ShieldCheck className="h-5 w-5" />} label="Bloqueados" value={stats.blocked} tone="destructive" />
+        <StatCard
+          icon={<Users className="h-5 w-5" />}
+          label="Total de clientes"
+          value={stats.total}
+          tone="primary"
+        />
+        <StatCard
+          icon={<Activity className="h-5 w-5" />}
+          label="Ativos hoje"
+          value={stats.activeToday}
+          tone="emerald"
+        />
+        <StatCard
+          icon={<ShieldCheck className="h-5 w-5" />}
+          label="Bloqueados"
+          value={stats.blocked}
+          tone="destructive"
+        />
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4 border-b pb-4">
@@ -179,7 +217,6 @@ function CustomersPage() {
         </div>
       </div>
 
-
       <div className="bg-card border rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
@@ -193,55 +230,75 @@ function CustomersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">A carregar…</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Sem resultados.</td></tr>
-            ) : filtered.map((c) => (
-              <tr key={c.id} className="border-t hover:bg-muted/30">
-                <td className="px-4 py-3 font-semibold text-primary">#{c.customer_number}</td>
-                <td className="px-4 py-3 text-muted-foreground">{new Date(c.created_at).toLocaleString()}</td>
-                <td className="px-4 py-3 text-muted-foreground">{new Date(c.last_seen_at).toLocaleString()}</td>
-                <td className="px-4 py-3">
-                  {c.blocked ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-destructive/15 text-destructive rounded-full px-2 py-0.5">
-                      <Lock className="h-3 w-3" /> Bloqueado
-                    </span>
-                  ) : (
-                    <span className="text-xs text-emerald-600 font-medium">Ativo</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button size="sm" variant="outline" onClick={() => setSelected(c)}>
-                    <Eye className="h-4 w-4 mr-1" /> Detalhes
-                  </Button>
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  A carregar…
                 </td>
               </tr>
-            ))}
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  Sem resultados.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((c) => (
+                <tr key={c.id} className="border-t hover:bg-muted/30">
+                  <td className="px-4 py-3 font-semibold text-primary">#{c.customer_number}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {new Date(c.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {new Date(c.last_seen_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.blocked ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-destructive/15 text-destructive rounded-full px-2 py-0.5">
+                        <Lock className="h-3 w-3" /> Bloqueado
+                      </span>
+                    ) : (
+                      <span className="text-xs text-emerald-600 font-medium">Ativo</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button size="sm" variant="outline" onClick={() => setSelected(c)}>
+                      <Eye className="h-4 w-4 mr-1" /> Detalhes
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {selected && (
-        <CustomerDetail
-          customer={selected}
-          onClose={() => setSelected(null)}
-          onChanged={refresh}
-        />
+        <CustomerDetail customer={selected} onClose={() => setSelected(null)} onChanged={refresh} />
       )}
     </div>
   );
 }
 
 function StatCard({
-  icon, label, value, tone,
-}: { icon: React.ReactNode; label: string; value: number; tone: "primary" | "emerald" | "destructive" }) {
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone: "primary" | "emerald" | "destructive";
+}) {
   const toneCls = {
     primary: "from-primary/10 to-primary/5 text-primary",
     emerald: "from-emerald-500/10 to-emerald-500/5 text-emerald-600",
     destructive: "from-destructive/10 to-destructive/5 text-destructive",
   }[tone];
   return (
-    <div className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${toneCls} p-5 shadow-sm backdrop-blur`}>
+    <div
+      className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${toneCls} p-5 shadow-sm backdrop-blur`}
+    >
       <div className="flex items-center gap-2 text-sm font-medium opacity-80">
         {icon} {label}
       </div>
@@ -301,7 +358,10 @@ function CustomerDetail({
       .eq("id", customer.id);
     setSaving(false);
     if (error) {
-      toast.error("Não foi possível guardar. " + (error.message.includes("unique") ? "Número já existe." : ""));
+      toast.error(
+        "Não foi possível guardar. " +
+          (error.message.includes("unique") ? "Número já existe." : ""),
+      );
       return;
     }
     toast.success("Cliente atualizado.");
@@ -312,7 +372,10 @@ function CustomerDetail({
   async function remove() {
     if (!confirm(`Apagar cliente #${customer.customer_number}? Esta ação é definitiva.`)) return;
     const { error } = await supabase.from("customers").delete().eq("id", customer.id);
-    if (error) { toast.error("Não foi possível apagar."); return; }
+    if (error) {
+      toast.error("Não foi possível apagar.");
+      return;
+    }
     toast.success("Cliente apagado.");
     onChanged();
     onClose();
@@ -343,7 +406,15 @@ function CustomerDetail({
               onClick={() => setBlocked(!blocked)}
               className={`mt-1 w-full h-10 rounded-lg border flex items-center justify-center gap-2 font-medium ${blocked ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"}`}
             >
-              {blocked ? <><Lock className="h-4 w-4" /> Bloqueado</> : <><LockOpen className="h-4 w-4" /> Ativo</>}
+              {blocked ? (
+                <>
+                  <Lock className="h-4 w-4" /> Bloqueado
+                </>
+              ) : (
+                <>
+                  <LockOpen className="h-4 w-4" /> Ativo
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -360,16 +431,22 @@ function CustomerDetail({
         </div>
 
         <div className="mt-6">
-          <h3 className="font-semibold text-primary mb-2">Pedidos de assistência ({requests.length})</h3>
+          <h3 className="font-semibold text-primary mb-2">
+            Pedidos de assistência ({requests.length})
+          </h3>
           {requests.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum pedido.</p>
           ) : (
             <ul className="space-y-1 max-h-48 overflow-y-auto">
               {requests.map((r) => (
                 <li key={r.id} className="text-sm flex items-center gap-2 border-b py-1.5">
-                  <span className="text-xs font-mono uppercase rounded bg-muted px-1.5 py-0.5">{r.status}</span>
+                  <span className="text-xs font-mono uppercase rounded bg-muted px-1.5 py-0.5">
+                    {r.status}
+                  </span>
                   <span className="flex-1 truncate">{r.reason ?? "—"}</span>
-                  <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString()}
+                  </span>
                 </li>
               ))}
             </ul>

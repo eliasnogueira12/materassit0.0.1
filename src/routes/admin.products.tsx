@@ -104,12 +104,15 @@ function AdminProducts() {
         />
       </div>
       {(() => {
-        const groupedProducts = products.reduce((acc, p) => {
-          const cat = p.category?.trim() || "Sem categoria";
-          if (!acc[cat]) acc[cat] = [];
-          acc[cat].push(p);
-          return acc;
-        }, {} as Record<string, ProductRow[]>);
+        const groupedProducts = products.reduce(
+          (acc, p) => {
+            const cat = p.category?.trim() || "Sem categoria";
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(p);
+            return acc;
+          },
+          {} as Record<string, ProductRow[]>,
+        );
 
         const categories = Object.keys(groupedProducts).sort();
 
@@ -126,7 +129,7 @@ function AdminProducts() {
               return (
                 <div key={cat} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
                   <button
-                    onClick={() => setCollapsed(prev => ({ ...prev, [cat]: !prev[cat] }))}
+                    onClick={() => setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }))}
                     className="w-full flex items-center justify-between p-4 bg-muted/40 hover:bg-muted/60 transition font-bold text-lg text-primary text-left border-b border-border cursor-pointer"
                   >
                     <span className="flex items-center gap-2">
@@ -171,7 +174,9 @@ function AdminProducts() {
                                   )}
                                 </div>
                                 {p.internal_code && (
-                                  <div className="text-[11px] text-muted-foreground mt-0.5">#{p.internal_code}</div>
+                                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                                    #{p.internal_code}
+                                  </div>
                                 )}
                               </td>
                               <td className="p-3">
@@ -197,7 +202,10 @@ function AdminProducts() {
                                   .join(" · ") || "—"}
                               </td>
                               <td className="p-3">
-                                <Switch checked={p.active} onCheckedChange={() => toggleActive(p)} />
+                                <Switch
+                                  checked={p.active}
+                                  onCheckedChange={() => toggleActive(p)}
+                                />
                               </td>
                               <td className="p-3 text-right">
                                 <div className="inline-flex gap-1">

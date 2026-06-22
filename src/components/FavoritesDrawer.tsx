@@ -42,13 +42,18 @@ function FavoritesPanel({ open, onClose }: { open: boolean; onClose: () => void 
       if (ids.length === 0) return [];
       const { data } = await supabase
         .from("products")
-        .select("id, name, price, image_url, section, aisle, shelf, promotion_active, promotion_price")
+        .select(
+          "id, name, price, image_url, section, aisle, shelf, promotion_active, promotion_price",
+        )
         .in("id", ids)
         .eq("active", true);
       return (data ?? []).map((p) => ({
         id: p.id,
         name: p.name,
-        price: p.promotion_active && p.promotion_price != null ? Number(p.promotion_price) : Number(p.price),
+        price:
+          p.promotion_active && p.promotion_price != null
+            ? Number(p.promotion_price)
+            : Number(p.price),
         image_url: p.image_url,
         location: [p.section, p.aisle, p.shelf].filter(Boolean).join(" · "),
       }));
@@ -62,10 +67,17 @@ function FavoritesPanel({ open, onClose }: { open: boolean; onClose: () => void 
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
-  async function handleAdd(p: { id: string; name: string; price: number; location: string | null }) {
+  async function handleAdd(p: {
+    id: string;
+    name: string;
+    price: number;
+    location: string | null;
+  }) {
     if (!p.id || !p.price) return;
     await addProduct(p.id, p.name, p.price, p.location);
   }
@@ -73,7 +85,10 @@ function FavoritesPanel({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in"
+          onClick={onClose}
+        />
       )}
       <div
         ref={panelRef}
@@ -103,10 +118,16 @@ function FavoritesPanel({ open, onClose }: { open: boolean; onClose: () => void 
             </div>
           ) : (
             products.map((p) => (
-              <div key={p.id} className="bg-card border rounded-2xl p-4 flex items-center gap-4 animate-fade-in">
+              <div
+                key={p.id}
+                className="bg-card border rounded-2xl p-4 flex items-center gap-4 animate-fade-in"
+              >
                 <div
                   className="h-16 w-16 rounded-xl bg-muted overflow-hidden shrink-0 cursor-pointer"
-                  onClick={() => { onClose(); navigate({ to: "/kiosk/product/$id", params: { id: p.id } }); }}
+                  onClick={() => {
+                    onClose();
+                    navigate({ to: "/kiosk/product/$id", params: { id: p.id } });
+                  }}
                 >
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
@@ -119,7 +140,10 @@ function FavoritesPanel({ open, onClose }: { open: boolean; onClose: () => void 
                 <div className="flex-1 min-w-0">
                   <p
                     className="font-semibold text-primary text-base leading-tight line-clamp-2 cursor-pointer hover:text-accent transition"
-                    onClick={() => { onClose(); navigate({ to: "/kiosk/product/$id", params: { id: p.id } }); }}
+                    onClick={() => {
+                      onClose();
+                      navigate({ to: "/kiosk/product/$id", params: { id: p.id } });
+                    }}
                   >
                     {p.name}
                   </p>
