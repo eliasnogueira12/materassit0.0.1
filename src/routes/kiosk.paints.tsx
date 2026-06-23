@@ -226,14 +226,16 @@ function PaintsPage() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-8">
-        <div className="w-full max-w-2xl">
+        {/* Dark overlay ensures text is readable on any background color */}
+        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+        <div className="w-full max-w-2xl relative">
           {step !== "welcome" && renderStepBar()}
 
           <div key={animKey} className="animate-fade-in">
             {step === "welcome" && (
               <div className="text-center text-white">
                 <div className="text-7xl mb-6">🎨</div>
-                <h1 className="text-4xl md:text-6xl font-black mb-4 drop-shadow-lg">
+                <h1 className="text-4xl md:text-6xl font-black mb-4 drop-shadow-2xl [text-shadow:0_2px_12px_rgba(0,0,0,0.3)]">
                   Encontre a Tinta Perfeita
                 </h1>
                 <p className="text-lg md:text-xl text-white/80 mb-8 max-w-lg mx-auto">
@@ -247,7 +249,7 @@ function PaintsPage() {
                   ].map((item) => (
                     <div
                       key={item.title}
-                      className="bg-white/10 backdrop-blur rounded-2xl p-5 text-center border border-white/10"
+                      className="bg-white/20 backdrop-blur rounded-2xl p-5 text-center border border-white/10"
                     >
                       <div className="text-3xl mb-2">{item.icon}</div>
                       <div className="font-bold text-sm">{item.title}</div>
@@ -282,7 +284,7 @@ function PaintsPage() {
                       className={`p-6 rounded-2xl text-center transition-all duration-200 border-2 ${
                         surface === s.id
                           ? "bg-white text-gray-900 border-white scale-105 shadow-xl"
-                          : "bg-white/10 text-white border-white/10 hover:bg-white/20"
+                          : "bg-white/20 text-white border-white/10 hover:bg-white/20"
                       }`}
                     >
                       <div className="text-4xl mb-2">{s.icon}</div>
@@ -326,8 +328,8 @@ function PaintsPage() {
                           finish === f.id
                             ? "bg-white text-gray-900 border-white scale-105 shadow-xl"
                             : compatible
-                              ? "bg-white/10 text-white border-white/10 hover:bg-white/20"
-                              : "bg-white/5 text-white/30 border-white/5 cursor-not-allowed"
+                              ? "bg-white/20 text-white border-white/10 hover:bg-white/20"
+                              : "bg-white/15 text-white/30 border-white/5 cursor-not-allowed"
                         }`}
                       >
                         <Droplets className={`h-8 w-8 mx-auto mb-2 ${finish === f.id ? "text-gray-900" : compatible ? "text-white/80" : "text-white/20"}`} />
@@ -352,7 +354,7 @@ function PaintsPage() {
               <div>
                 <h2 className="text-3xl font-black text-white text-center mb-2">Calculadora de Tinta</h2>
                 <p className="text-center text-white/60 mb-6">Mede a área a pintar.</p>
-                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10 space-y-4">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-6 border border-white/10 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-white/80 text-sm font-semibold block mb-1">
@@ -417,7 +419,7 @@ function PaintsPage() {
                   </div>
 
                   {area > 0 && (
-                    <div className="bg-white/10 rounded-xl p-4 text-center">
+                    <div className="bg-white/20 rounded-xl p-4 text-center">
                       <p className="text-white/60 text-xs">Área total</p>
                       <p className="text-white text-2xl font-bold">{area.toFixed(1)} m²</p>
                     </div>
@@ -441,7 +443,7 @@ function PaintsPage() {
 
             {step === "result" && (
               <div className="space-y-6">
-                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10 text-white text-center">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-6 border border-white/10 text-white text-center">
                   <div className="text-5xl mb-3">📐</div>
                   <h2 className="text-3xl font-black mb-1">Resultado</h2>
                   <p className="text-white/60 text-sm mb-4">{surfaceLabel} · {finishLabel}</p>
@@ -454,14 +456,14 @@ function PaintsPage() {
 
                   <div className="flex justify-center gap-4 mt-6">
                     {cans5l > 0 && (
-                      <div className="bg-white/10 rounded-xl p-4 text-center min-w-[100px] border border-white/10">
+                      <div className="bg-white/20 rounded-xl p-4 text-center min-w-[100px] border border-white/10">
                         <div className="text-3xl mb-1">🪣</div>
                         <div className="text-2xl font-bold">{cans5l}x</div>
                         <div className="text-xs text-white/60">5L</div>
                       </div>
                     )}
                     {cans1l > 0 && (
-                      <div className="bg-white/10 rounded-xl p-4 text-center min-w-[100px] border border-white/10">
+                      <div className="bg-white/20 rounded-xl p-4 text-center min-w-[100px] border border-white/10">
                         <div className="text-2xl mb-1">🥫</div>
                         <div className="text-2xl font-bold">{cans1l}x</div>
                         <div className="text-xs text-white/60">1L</div>
@@ -472,7 +474,7 @@ function PaintsPage() {
 
                 {/* Paint Products */}
                 {paintProducts.length > 0 && (
-                  <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10">
+                  <div className="bg-white/20 backdrop-blur rounded-2xl p-6 border border-white/10">
                     <div className="flex items-center gap-2 mb-4">
                       <ShoppingCart className="h-5 w-5 text-white" />
                       <h3 className="text-lg font-bold text-white">Tintas Recomendadas</h3>
@@ -483,12 +485,12 @@ function PaintsPage() {
                           key={p.id}
                           to="/kiosk/product/$id"
                           params={{ id: p.id }}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition border border-white/5"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-white/15 hover:bg-white/20 transition border border-white/5"
                         >
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover" />
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
                               <Paintbrush className="h-6 w-6 text-white/40" />
                             </div>
                           )}
@@ -521,14 +523,14 @@ function PaintsPage() {
                 )}
 
                 {/* Color Explorer */}
-                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-6 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <Palette className="h-5 w-5 text-white" />
                     <h3 className="text-lg font-bold text-white">Explorar Cores</h3>
                   </div>
 
                   {/* Custom hex input */}
-                  <div className="flex items-center gap-2 mb-4 bg-white/10 rounded-xl px-4 py-2 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4 bg-white/20 rounded-xl px-4 py-2 border border-white/10">
                     <Hash className="h-4 w-4 text-white/40" />
                     <input
                       type="text"
@@ -618,7 +620,7 @@ function PaintsPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={reset}
-                    className="flex-1 bg-white/10 text-white font-bold py-4 rounded-xl border border-white/20 hover:bg-white/20 transition flex items-center justify-center gap-2"
+                    className="flex-1 bg-white/20 text-white font-bold py-4 rounded-xl border border-white/20 hover:bg-white/20 transition flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="h-5 w-5" />
                     Recomeçar
