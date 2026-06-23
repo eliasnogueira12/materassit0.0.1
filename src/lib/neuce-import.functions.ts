@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const NEUCE_JSON_URL = "https://www.neuce.com/files/filtros/json__pt_pt.js";
 const NEUCE_IMAGE_BASE = "https://www.neuce.com/";
@@ -105,6 +105,12 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
   .handler(async () => {
     const results = { total: 0, inserted: 0, updated: 0, errors: 0, details: [] as string[] };
 
+    const SUPABASE_URL = process.env.SUPABASE_URL!;
+    const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY!;
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+
     try {
       const response = await fetch(NEUCE_JSON_URL);
       if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
@@ -152,7 +158,7 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
           };
         });
 
-        const { error } = await supabaseAdmin
+        const { error } = await supabase
           .from("products")
           .upsert(records, {
             onConflict: "internal_code",
