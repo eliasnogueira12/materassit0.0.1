@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { askAssistant, type RecommendedProduct } from "@/lib/assistant.functions";
@@ -276,6 +276,23 @@ function AssistantPage() {
           </div>
         )}
       </div>
+
+      {/* Paint Studio Link */}
+      <Link
+        to="/kiosk/paints"
+        className="flex items-center gap-3 mb-3 p-4 rounded-2xl bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 text-white shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-transform group"
+      >
+        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl group-hover:rotate-12 transition-transform">
+          🎨
+        </div>
+        <div className="flex-1">
+          <div className="font-bold text-base">Mundo das Tintas</div>
+          <div className="text-xs text-white/70">
+            Calculadora, cores e recomendações
+          </div>
+        </div>
+        <div className="text-2xl group-hover:translate-x-1 transition-transform">→</div>
+      </Link>
 
       {/* Toolbar: language, accessibility */}
       <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
