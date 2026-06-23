@@ -599,6 +599,7 @@ function PaintsPage() {
             </div>
           )}
         </div>
+      </div>
     </div>
   );
 }
