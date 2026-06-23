@@ -2,9 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { useCart } from "@/lib/useCart";
-import { toast } from "sonner";
 import {
   Paintbrush,
   Ruler,
@@ -20,7 +17,6 @@ import {
   Hash,
   Star,
   Info,
-  Scan,
   Search,
 } from "lucide-react";
 
@@ -98,7 +94,6 @@ const SWATCHES = [
 type Step = "welcome" | "surface" | "finish" | "calculate" | "result";
 
 function PaintsPage() {
-  const cart = useCart();
   const [step, setStep] = useState<Step>("welcome");
   const [surface, setSurface] = useState("");
   const [finish, setFinish] = useState("");
@@ -112,7 +107,6 @@ function PaintsPage() {
     try { return JSON.parse(localStorage.getItem("paintFavorites") || "[]"); } catch { return []; }
   });
   const [animKey, setAnimKey] = useState(0);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("paintFavorites", JSON.stringify(favorites));
@@ -202,14 +196,6 @@ function PaintsPage() {
             </div>
             <span className="font-bold text-gray-900">NEUCE</span>
           </div>
-          <button
-            onClick={() => setShowBarcodeScanner(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition shadow-sm"
-            style={{ backgroundColor: NEUCE_RED }}
-          >
-            <Scan className="h-3.5 w-3.5" />
-            Scanear
-          </button>
         </div>
       </header>
 
@@ -613,27 +599,6 @@ function PaintsPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <BarcodeScanner
-        open={showBarcodeScanner}
-        onDetected={async (barcode) => {
-          setShowBarcodeScanner(false);
-          const { data } = await supabase
-            .from("products")
-            .select("*")
-            .eq("barcode", barcode)
-            .eq("active", true)
-            .maybeSingle();
-          if (data) {
-            cart.addProduct(data.id, data.name, data.price ?? 0, "Mundo das Tintas");
-            toast(`"${data.name}" adicionado ao carrinho`);
-          } else {
-            toast("Produto não encontrado na base de dados.");
-          }
-        }}
-        onClose={() => setShowBarcodeScanner(false)}
-      />
     </div>
   );
 }
