@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { askAssistant, type RecommendedProduct } from "@/lib/assistant.functions";
@@ -277,7 +277,9 @@ function AssistantPage() {
         )}
       </div>
 
+      {/* Toolbar: language, accessibility */}
       <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+        {/* Language */}
         <div className="flex items-center gap-1">
           {(["pt", "en", "es"] as Lang[]).map((l) => (
             <button
@@ -291,6 +293,7 @@ function AssistantPage() {
           ))}
         </div>
         <span className="opacity-30">|</span>
+        {/* Font size */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => setFontSize(Math.max(80, fontSize - 10))}
@@ -309,6 +312,7 @@ function AssistantPage() {
           </button>
         </div>
         <span className="opacity-30">|</span>
+        {/* High contrast */}
         <button
           onClick={() => setHighContrast(!highContrast)}
           className={`px-2 py-0.5 rounded font-semibold transition ${highContrast ? "bg-foreground text-background" : "hover:bg-muted"}`}

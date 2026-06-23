@@ -1,70 +1,94 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Paintbrush, Sparkles, ArrowRight } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export const Route = createFileRoute("/kiosk/start")({
-  component: WelcomeHub,
+  component: KioskHome,
 });
 
-function WelcomeHub() {
-  const navigate = useNavigate();
-
+function KioskHome() {
   return (
-    <div className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 p-6">
-      <div className="text-center mb-12 max-w-lg">
-        <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 mb-3">
-          Bem-vindo à <span className="text-red-700">MarquesMater</span>
-        </h1>
-        <p className="text-lg text-gray-500">
-          Como podemos ajudar hoje?
+    <div className="min-h-full flex flex-col bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-neutral-900 dark:to-stone-900">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-4xl mx-auto w-full">
+        {/* Logo + tagline */}
+        <div className="text-center mb-14 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white dark:bg-stone-800 shadow-xl shadow-amber-200/20 dark:shadow-black/30 mb-6 ring-1 ring-amber-100/50 dark:ring-stone-700/50">
+            <Logo className="h-14 w-auto" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-stone-800 dark:text-stone-100 tracking-tight">
+            Olá! 👋
+          </h1>
+          <p className="mt-3 text-lg text-stone-500 dark:text-stone-400 leading-relaxed max-w-md mx-auto">
+            O que gostarias de fazer hoje?
+          </p>
+        </div>
+
+        {/* Two floating side-by-side cards */}
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 animate-[fade-in_0.5s_ease-out]">
+          {/* Casa das Tintas */}
+          <Link
+            to="/kiosk/paints"
+            className="group relative flex flex-col items-center text-center p-8 md:p-10 rounded-3xl bg-white dark:bg-stone-800/90 shadow-xl shadow-rose-200/30 dark:shadow-black/20 hover:shadow-2xl hover:shadow-rose-300/40 dark:hover:shadow-rose-900/30 border border-rose-100/50 dark:border-rose-900/20 transition-all duration-500 hover:-translate-y-2"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-rose-400 to-amber-400 flex items-center justify-center text-4xl shadow-lg shadow-rose-200/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 mb-5">
+              🎨
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight mb-3">
+              Casa das Tintas
+            </h2>
+            <p className="text-stone-500 dark:text-stone-400 leading-relaxed text-sm md:text-base max-w-xs">
+              Calcula a tinta que precisas, explora cores, descobre o acabamento ideal.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {["Calculadora", "24 Cores", "Acabamentos"].map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-100/80 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="mt-6 w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-500 dark:text-rose-300 group-hover:bg-rose-200 dark:group-hover:bg-rose-800/40 group-hover:translate-x-1 transition-all duration-300 shadow-sm">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+          </Link>
+
+          {/* Assistente da Loja */}
+          <Link
+            to="/kiosk/assistant"
+            className="group relative flex flex-col items-center text-center p-8 md:p-10 rounded-3xl bg-white dark:bg-stone-800/90 shadow-xl shadow-sky-200/30 dark:shadow-black/20 hover:shadow-2xl hover:shadow-sky-300/40 dark:hover:shadow-sky-900/30 border border-sky-100/50 dark:border-sky-900/20 transition-all duration-500 hover:-translate-y-2"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-400 flex items-center justify-center text-4xl shadow-lg shadow-sky-200/50 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 mb-5">
+              🤖
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight mb-3">
+              Assistente da Loja
+            </h2>
+            <p className="text-stone-500 dark:text-stone-400 leading-relaxed text-sm md:text-base max-w-xs">
+              Pergunta o que precisas — encontrar produtos, preços, ou chamar um funcionário.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {["Chat Inteligente", "Produtos", "Ajuda"].map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-sky-100/80 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="mt-6 w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-500 dark:text-sky-300 group-hover:bg-sky-200 dark:group-hover:bg-sky-800/40 group-hover:translate-x-1 transition-all duration-300 shadow-sm">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+          </Link>
+        </div>
+
+        {/* Footer hint */}
+        <p className="mt-12 text-xs text-stone-400 dark:text-stone-500 text-center animate-fade-in">
+          Toca numa opção para começar
         </p>
       </div>
-
-      <div className="grid sm:grid-cols-2 gap-6 w-full max-w-2xl">
-        <button
-          onClick={() => navigate({ to: "/kiosk/paints" })}
-          className="group relative bg-white rounded-3xl border-2 border-red-100 shadow-lg hover:shadow-2xl hover:border-red-300 transition-all duration-300 p-8 text-left hover:-translate-y-1"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center mb-5 shadow-lg shadow-red-200">
-            <Paintbrush className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-red-700 transition-colors">
-            Casa das Tintas
-          </h2>
-          <p className="text-gray-500 text-sm leading-relaxed mb-4">
-            Explore tintas, cores, calcule a quantidade certa e encontre o produto ideal para o seu projeto.
-          </p>
-          <div className="flex items-center gap-2 text-red-700 font-semibold text-sm group-hover:gap-3 transition-all">
-            <span>Explorar tintas</span>
-            <ArrowRight className="h-4 w-4" />
-          </div>
-          <div className="absolute top-4 right-4 px-2.5 py-1 bg-red-50 text-red-700 text-[10px] font-bold rounded-full border border-red-100">
-            NEUCE
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate({ to: "/kiosk/assistant" })}
-          className="group relative bg-white rounded-3xl border-2 border-blue-100 shadow-lg hover:shadow-2xl hover:border-blue-300 transition-all duration-300 p-8 text-left hover:-translate-y-1"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-5 shadow-lg shadow-blue-200">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-            Assistente da Loja
-          </h2>
-          <p className="text-gray-500 text-sm leading-relaxed mb-4">
-            Faça perguntas, peça recomendações de produtos ou obtenha ajuda para resolver problemas.
-          </p>
-          <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm group-hover:gap-3 transition-all">
-            <span>Conversar agora</span>
-            <ArrowRight className="h-4 w-4" />
-          </div>
-        </button>
-      </div>
-
-      <p className="mt-12 text-xs text-gray-400 text-center max-w-md">
-        Use o quiosque para explorar o nosso catálogo de tintas NEUCE ou conversar com o assistente virtual.
-      </p>
     </div>
   );
 }

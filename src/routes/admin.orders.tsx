@@ -16,6 +16,7 @@ import {
   Printer,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
@@ -32,6 +33,7 @@ function AdminOrders() {
   const [searchToken, setSearchToken] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const list = useServerFn(listOrders);
   const markPaid = useServerFn(markOrderPaid);
@@ -58,7 +60,7 @@ function AdminOrders() {
   });
 
   const { data: detail, isLoading: detailLoading } = useQuery({
-    queryKey: ["admin", "order-detail", selectedToken],
+    queryKey: ["admin", "order-detail", selectedToken, refreshKey],
     enabled: !!selectedToken,
     queryFn: async () => {
       if (!selectedToken) return null;
@@ -67,8 +69,14 @@ function AdminOrders() {
   });
 
   async function handleMarkPaid(orderId: string) {
-    await markPaid({ data: { orderId } });
-    refetch();
+    try {
+      await markPaid({ data: { orderId } });
+      toast.success("Fatura marcada como paga!");
+      refetch();
+      setRefreshKey((k) => k + 1);
+    } catch {
+      toast.error("Erro ao marcar fatura como paga.");
+    }
   }
 
   if (selectedToken) {
