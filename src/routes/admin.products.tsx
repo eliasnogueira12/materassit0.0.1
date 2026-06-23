@@ -422,6 +422,29 @@ function ProductDialog({
               setShowScanner(false);
               setLookingUp(true);
               try {
+                const { data: local } = await supabase
+                  .from("products")
+                  .select("*")
+                  .eq("barcode", code)
+                  .maybeSingle();
+                if (local) {
+                  set("name", local.name);
+                  set("category", local.category);
+                  set("section", local.section);
+                  set("aisle", local.aisle);
+                  set("shelf", local.shelf);
+                  set("description", local.description);
+                  set("keywords", local.keywords);
+                  set("image_url", local.image_url);
+                  set("price", local.price);
+                  set("internal_code", local.internal_code);
+                  set("stock", local.stock);
+                  set("promotion_price", local.promotion_price);
+                  set("promotion_active", local.promotion_active);
+                  set("featured", local.featured);
+                  toast.success("Produto encontrado na base de dados local");
+                  return;
+                }
                 const result = await lookupBarcode({ barcode: code });
                 if (result?.name && !form.name) {
                   set("name", result.name);
