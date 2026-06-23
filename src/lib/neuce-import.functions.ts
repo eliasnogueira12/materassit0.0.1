@@ -111,10 +111,19 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
 
       const text = await response.text();
       const jsonStr = text.replace(/^var products=/, "").replace(/;$/, "");
-      const products: NeuceProduct[] = JSON.parse(jsonStr);
+      const raw: NeuceProduct[] = JSON.parse(jsonStr);
+
+      // Filter out products without ref and deduplicate by ref
+      const seen = new Set<string>();
+      const products = raw.filter((p) => {
+        if (!p.ref) return false;
+        if (seen.has(p.ref)) return false;
+        seen.add(p.ref);
+        return true;
+      });
 
       results.total = products.length;
-      results.details.push(`Found ${products.length} products`);
+      results.details.push(`Found ${raw.length} products, ${raw.length - products.length} skipped (no ref or duplicate)`);
 
       const batchSize = 50;
       for (let i = 0; i < products.length; i += batchSize) {
@@ -128,7 +137,7 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
             description: p.subtitle?.trim() || null,
             keywords: buildKeywords(p),
             image_url: getImageUrl(p.image),
-            internal_code: p.ref || null,
+            internal_code: p.ref,
             price: getPrice(p.price),
             stock: parseInt(p.stock || "0", 10) || 0,
             stock_visible: true,
