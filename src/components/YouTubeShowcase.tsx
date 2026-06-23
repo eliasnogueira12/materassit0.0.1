@@ -2,10 +2,52 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { listenSettingsChange } from "@/lib/settings-broadcast";
 
+interface ThemeOverlay {
+  id: string;
+  imageUrl: string;
+  label: string;
+  position:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "center-left"
+    | "center"
+    | "center-right"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
+  width: number;
+  opacity: number;
+  enabled: boolean;
+}
+
 const DEFAULT_VIDEOS = [
   { id: "_rWPvpP1jmU", title: "Lavadoras de alta pressão WR - Vito Pro-Power" },
   { id: "l2PQO8Sg-y0", title: "Rebarbadoras RAD / RADPRO - Vito" },
 ];
+
+function overlayStyle(o: ThemeOverlay): React.CSSProperties {
+  const pos: Record<string, { top?: string; bottom?: string; left?: string; right?: string; transform?: string }> = {
+    "top-left": { top: "0", left: "0" },
+    "top-center": { top: "0", left: "50%", transform: "translateX(-50%)" },
+    "top-right": { top: "0", right: "0" },
+    "center-left": { top: "50%", left: "0", transform: "translateY(-50%)" },
+    center: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
+    "center-right": { top: "50%", right: "0", transform: "translateY(-50%)" },
+    "bottom-left": { bottom: "0", left: "0" },
+    "bottom-center": { bottom: "0", left: "50%", transform: "translateX(-50%)" },
+    "bottom-right": { bottom: "0", right: "0" },
+  };
+  return {
+    position: "fixed",
+    ...pos[o.position],
+    width: `${o.width}%`,
+    maxWidth: `${o.width}%`,
+    opacity: o.opacity / 100,
+    zIndex: 10,
+    pointerEvents: "none",
+  };
+}
 
 function embedUrl(id: string) {
   const origin =
@@ -16,7 +58,7 @@ function embedUrl(id: string) {
 export function YouTubeShowcase({ background }: { background?: boolean }) {
   const [videos, setVideos] = useState<{ id: string; title: string }[]>(DEFAULT_VIDEOS);
   const [failed, setFailed] = useState<Set<string>>(new Set());
-  const [theme, setTheme] = useState({ gradientFrom: "#1a1a2e", gradientTo: "#0f3460" });
+  const [theme, setTheme] = useState({ gradientFrom: "#1a1a2e", gradientTo: "#0f3460", overlays: [] as ThemeOverlay[] });
 
   useEffect(() => {
     // Fetch videos
@@ -48,6 +90,7 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
             setTheme({
               gradientFrom: t.gradientFrom || "#1a1a2e",
               gradientTo: t.gradientTo || "#0f3460",
+              overlays: Array.isArray(t.overlays) ? t.overlays : [],
             });
           }
         },
@@ -87,6 +130,7 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
                 setTheme({
                   gradientFrom: t.gradientFrom || "#1a1a2e",
                   gradientTo: t.gradientTo || "#0f3460",
+                  overlays: Array.isArray(t.overlays) ? t.overlays : [],
                 });
               }
             },
@@ -118,6 +162,17 @@ export function YouTubeShowcase({ background }: { background?: boolean }) {
             onError={() => setFailed((prev) => new Set(prev).add(activeVideo.id))}
           />
         )}
+        {theme.overlays
+          .filter((o) => o.enabled)
+          .map((o) => (
+            <img
+              key={o.id}
+              src={o.imageUrl}
+              alt={o.label}
+              style={overlayStyle(o)}
+              className="pointer-events-none select-none"
+            />
+          ))}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 pointer-events-none" />
       </div>
     );

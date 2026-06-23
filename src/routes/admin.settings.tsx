@@ -27,6 +27,9 @@ import {
   Image,
   Upload,
   Save,
+  Move,
+  Maximize,
+  Layers,
 } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 import { broadcastSettingsChange } from "@/lib/settings-broadcast";
@@ -48,9 +51,29 @@ interface Phrases {
   es: PhraseGroup;
 }
 
+interface ThemeOverlay {
+  id: string;
+  imageUrl: string;
+  label: string;
+  position:
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "center-left"
+    | "center"
+    | "center-right"
+    | "bottom-left"
+    | "bottom-center"
+    | "bottom-right";
+  width: number;
+  opacity: number;
+  enabled: boolean;
+}
+
 interface ThemeSettings {
   gradientFrom: string;
   gradientTo: string;
+  overlays: ThemeOverlay[];
   primary?: string;
   accent?: string;
 }
@@ -63,6 +86,28 @@ function extractYoutubeId(urlOrId: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|live\/|shorts\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = trimmed.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
+}
+
+function getOverlayStyle(o: ThemeOverlay): React.CSSProperties {
+  const positionMap: Record<string, { top?: string; bottom?: string; left?: string; right?: string; transform?: string }> =
+    {
+      "top-left": { top: "0", left: "0" },
+      "top-center": { top: "0", left: "50%", transform: "translateX(-50%)" },
+      "top-right": { top: "0", right: "0" },
+      "center-left": { top: "50%", left: "0", transform: "translateY(-50%)" },
+      center: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
+      "center-right": { top: "50%", right: "0", transform: "translateY(-50%)" },
+      "bottom-left": { bottom: "0", left: "0" },
+      "bottom-center": { bottom: "0", left: "50%", transform: "translateX(-50%)" },
+      "bottom-right": { bottom: "0", right: "0" },
+    };
+  return {
+    ...positionMap[o.position],
+    width: `${o.width}%`,
+    maxWidth: `${o.width}%`,
+    opacity: o.opacity / 100,
+    zIndex: 5,
+  };
 }
 
 function AdminSettingsPage() {
@@ -95,6 +140,7 @@ function AdminSettingsPage() {
   const [theme, setTheme] = useState<ThemeSettings>({
     gradientFrom: "#1a1a2e",
     gradientTo: "#0f3460",
+    overlays: [],
   });
 
   // Branding States
@@ -147,6 +193,7 @@ function AdminSettingsPage() {
             setTheme({
               gradientFrom: t.gradientFrom || "#1a1a2e",
               gradientTo: t.gradientTo || "#0f3460",
+              overlays: Array.isArray(t.overlays) ? t.overlays : [],
             });
           }
         },
@@ -271,6 +318,101 @@ function AdminSettingsPage() {
   function handleSaveTheme() {
     saveSetting("theme", theme, "Tema e cores do ecrã principal guardados!");
   }
+
+  // Overlay Upload
+  const [uploadingOverlay, setUploadingOverlay] = useState(false);
+  const [uploadingPreset, setUploadingPreset] = useState(false);
+
+  async function handleOverlayUpload(e: React.ChangeEvent<HTMLInputElement>, preset?: string) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor selecione um ficheiro de imagem.");
+      return;
+    }
+    if (preset) setUploadingPreset(true);
+    else setUploadingOverlay(true);
+    try {
+      const safeName = file.name.replace(/[^a-z0-9.-]/gi, "_");
+      const path = `overlays/${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      if (preset) {
+        // Adding to a festive preset
+        const label = preset === "natal" ? "🎄 Natal" : preset === "anonovo" ? "🎆 Ano Novo" : preset === "aniversario" ? "🎂 Aniversário" : preset === "halloween" ? "🎃 Halloween" : "🌸 Primavera";
+        const overlay: ThemeOverlay = {
+          id: crypto.randomUUID(),
+          imageUrl: publicUrl,
+          label,
+          position: "bottom-right",
+          width: 25,
+          opacity: 90,
+          enabled: true,
+        };
+        setTheme((p) => ({ ...p, overlays: [...p.overlays, overlay] }));
+        toast.success(`Imagem adicionada ao preset "${label}"! Guarde o tema para aplicar.`);
+      } else {
+        // Manual overlay
+        const overlay: ThemeOverlay = {
+          id: crypto.randomUUID(),
+          imageUrl: publicUrl,
+          label: "Decoração",
+          position: "bottom-right",
+          width: 25,
+          opacity: 90,
+          enabled: true,
+        };
+        setTheme((p) => ({ ...p, overlays: [...p.overlays, overlay] }));
+        toast.success("Imagem adicionada! Ajuste a posição e tamanho abaixo.");
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar imagem: ${message}`);
+    } finally {
+      setUploadingOverlay(false);
+      setUploadingPreset(false);
+      e.target.value = "";
+    }
+  }
+
+  function handleUpdateOverlay(id: string, updates: Partial<ThemeOverlay>) {
+    setTheme((p) => ({
+      ...p,
+      overlays: p.overlays.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+    }));
+  }
+
+  function handleRemoveOverlay(id: string) {
+    setTheme((p) => ({
+      ...p,
+      overlays: p.overlays.filter((o) => o.id !== id),
+    }));
+  }
+
+  const POSITIONS: { value: ThemeOverlay["position"]; label: string }[] = [
+    { value: "top-left", label: "Topo Esquerda" },
+    { value: "top-center", label: "Topo Centro" },
+    { value: "top-right", label: "Topo Direita" },
+    { value: "center-left", label: "Meio Esquerda" },
+    { value: "center", label: "Centro" },
+    { value: "center-right", label: "Meio Direita" },
+    { value: "bottom-left", label: "Base Esquerda" },
+    { value: "bottom-center", label: "Base Centro" },
+    { value: "bottom-right", label: "Base Direita" },
+  ];
+
+  const FESTIVE_PRESETS = [
+    { id: "natal", label: "🎄 Natal", from: "#1a3a1a", to: "#2d5a27" },
+    { id: "anonovo", label: "🎆 Ano Novo", from: "#b8860b", to: "#1a1a1a" },
+    { id: "aniversario", label: "🎂 Aniversário", from: "#ff69b4", to: "#daa520" },
+    { id: "halloween", label: "🎃 Halloween", from: "#ff8c00", to: "#2d1b00" },
+    { id: "primavera", label: "🌸 Primavera", from: "#ffb7c5", to: "#98fb98" },
+  ];
 
   // Logo Upload
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -646,16 +788,11 @@ function AdminSettingsPage() {
                     { from: "#065f46", to: "#022c22", label: "Verde Jardim" },
                     { from: "#1e3a8a", to: "#172554", label: "Azul Profundo" },
                     { from: "#581c87", to: "#3b0764", label: "Púrpura Escuro" },
-                    { from: "#1a3a1a", to: "#2d5a27", label: "🎄 Natal (Vermelho+Verde)" },
-                    { from: "#b8860b", to: "#1a1a1a", label: "🎆 Ano Novo (Dourado+Preto)" },
-                    { from: "#ff69b4", to: "#daa520", label: "🎂 Aniversário (Rosa+Dourado)" },
-                    { from: "#ff8c00", to: "#2d1b00", label: "🎃 Halloween (Laranja+Preto)" },
-                    { from: "#ffb7c5", to: "#98fb98", label: "🌸 Primavera (Rosa+Verde)" },
                   ].map((preset, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setTheme({ gradientFrom: preset.from, gradientTo: preset.to })}
+                      onClick={() => setTheme({ gradientFrom: preset.from, gradientTo: preset.to, overlays: theme.overlays })}
                       className="w-10 h-10 rounded-full border-2 border-border cursor-pointer transition shadow-sm hover:scale-110 active:scale-95"
                       style={{
                         background: `linear-gradient(135deg, ${preset.from}, ${preset.to})`,
@@ -664,9 +801,74 @@ function AdminSettingsPage() {
                     />
                   ))}
                 </div>
+              </div>
+
+              {/* Festive Presets with Decorations */}
+              <div className="pt-4 mt-4 border-t border-border">
+                <span className="text-xs font-semibold text-muted-foreground block mb-2">
+                  🎉 Ocasiões Especiais (Tema + Decorações)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {FESTIVE_PRESETS.map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="p-3 rounded-xl border bg-card shadow-sm space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-8 h-8 rounded-full border border-border shrink-0"
+                          style={{
+                            background: `linear-gradient(135deg, ${preset.from}, ${preset.to})`,
+                          }}
+                        />
+                        <span className="text-sm font-bold">{preset.label}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Aplicar cores e adicionar imagem decorativa:
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-8"
+                          onClick={() => {
+                            setTheme((p) => ({
+                              gradientFrom: preset.from,
+                              gradientTo: preset.to,
+                              overlays: Array.isArray(p.overlays) ? p.overlays : [],
+                            }));
+                            toast.success(`Tema "${preset.label}" aplicado!`);
+                          }}
+                        >
+                          <Palette className="h-3 w-3 mr-1" />
+                          Cor
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-8 relative"
+                          disabled={uploadingPreset}
+                          asChild
+                        >
+                          <label className="cursor-pointer">
+                            <Image className="h-3 w-3 mr-1" />
+                            {uploadingPreset ? "..." : "Imagem"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleOverlayUpload(e, preset.id)}
+                              disabled={uploadingPreset}
+                            />
+                          </label>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 <p className="text-[10px] text-muted-foreground mt-2">
-                  Selecione um esquema de cores para ocasiões especiais (Natal, Ano Novo,
-                  Aniversário, etc.)
+                  Escolha uma ocasião, aplique a cor e adicione uma imagem decorativa (ex: árvore de
+                  Natal, bolo, fogos de artifício).
                 </p>
               </div>
 
@@ -676,14 +878,176 @@ function AdminSettingsPage() {
                   Visualização do tema do quiosque
                 </span>
                 <div
-                  className="p-12 rounded-2xl text-white text-center shadow-lg border relative transition-colors duration-300"
+                  className="p-12 rounded-2xl text-white text-center shadow-lg border relative transition-colors duration-300 overflow-hidden min-h-[200px]"
                   style={{
                     background: `linear-gradient(to bottom right, ${theme.gradientFrom}, ${theme.gradientTo})`,
                   }}
                 >
-                  <h4 className="text-xl font-bold tracking-tight">MarquesMater Quiosque</h4>
-                  <p className="text-xs mt-1 opacity-70">Visualização de fundo do ecrã inicial</p>
+                  {theme.overlays
+                    .filter((o) => o.enabled)
+                    .map((o) => (
+                      <img
+                        key={o.id}
+                        src={o.imageUrl}
+                        alt={o.label}
+                        className="absolute pointer-events-none"
+                        style={getOverlayStyle(o)}
+                      />
+                    ))}
+                  <h4 className="text-xl font-bold tracking-tight relative z-10">
+                    MarquesMater Quiosque
+                  </h4>
+                  <p className="text-xs mt-1 opacity-70 relative z-10">
+                    Visualização de fundo do ecrã inicial
+                  </p>
                 </div>
+              </div>
+
+              {/* Overlay Management */}
+              <div className="pt-4 mt-2 border-t border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Layers className="h-3.5 w-3.5 inline mr-1" />
+                    Decorações ({theme.overlays.length})
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-8 relative"
+                    disabled={uploadingOverlay}
+                    asChild
+                  >
+                    <label className="cursor-pointer">
+                      <Plus className="h-3 w-3 mr-1" />
+                      {uploadingOverlay ? "..." : "Adicionar Imagem"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleOverlayUpload}
+                        disabled={uploadingOverlay}
+                      />
+                    </label>
+                  </Button>
+                </div>
+
+                {theme.overlays.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    Nenhuma decoração adicionada. Carregue imagens para personalizar o ecrã
+                    principal para ocasiões especiais.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {theme.overlays.map((o) => (
+                      <div
+                        key={o.id}
+                        className="p-3 rounded-xl border bg-card shadow-sm space-y-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0 border">
+                            <img
+                              src={o.imageUrl}
+                              alt={o.label}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <input
+                              className="text-sm font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-border outline-none w-full"
+                              value={o.label}
+                              onChange={(e) => handleUpdateOverlay(o.id, { label: e.target.value })}
+                              placeholder="Nome da decoração"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleUpdateOverlay(o.id, { enabled: !o.enabled })
+                              }
+                              className={`px-2 py-1 rounded text-xs font-bold transition ${
+                                o.enabled
+                                  ? "bg-accent text-accent-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {o.enabled ? "ON" : "OFF"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOverlay(o.id)}
+                              className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition"
+                              title="Remover"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground font-semibold">
+                              <Move className="h-3 w-3 inline mr-0.5" />
+                              Posição
+                            </label>
+                            <select
+                              className="w-full text-xs rounded-lg border border-input bg-background px-2 py-1.5"
+                              value={o.position}
+                              onChange={(e) =>
+                                handleUpdateOverlay(o.id, {
+                                  position: e.target.value as ThemeOverlay["position"],
+                                })
+                              }
+                            >
+                              {POSITIONS.map((p) => (
+                                <option key={p.value} value={p.value}>
+                                  {p.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground font-semibold">
+                              <Maximize className="h-3 w-3 inline mr-0.5" />
+                              Tamanho: {o.width}%
+                            </label>
+                            <input
+                              type="range"
+                              min={5}
+                              max={100}
+                              value={o.width}
+                              onChange={(e) =>
+                                handleUpdateOverlay(o.id, {
+                                  width: Number(e.target.value),
+                                })
+                              }
+                              className="w-full"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground font-semibold">
+                              Opacidade: {o.opacity}%
+                            </label>
+                            <input
+                              type="range"
+                              min={10}
+                              max={100}
+                              value={o.opacity}
+                              onChange={(e) =>
+                                handleUpdateOverlay(o.id, {
+                                  opacity: Number(e.target.value),
+                                })
+                              }
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="flex justify-end pt-4 border-t">
