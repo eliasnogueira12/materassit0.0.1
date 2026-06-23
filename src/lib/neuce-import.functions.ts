@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const NEUCE_JSON_URL = "https://www.neuce.com/files/filtros/json__pt_pt.js";
 const NEUCE_IMAGE_BASE = "https://www.neuce.com/";
@@ -101,8 +100,9 @@ function buildKeywords(product: NeuceProduct): string {
 }
 
 export const importNeuceProducts = createServerFn({ method: "POST" })
-  .validator((d: unknown) => z.object({}).parse(d))
-  .handler(async () => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
     const results = { total: 0, inserted: 0, updated: 0, errors: 0, details: [] as string[] };
 
     try {
@@ -132,7 +132,7 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
             price: getPrice(p.price),
             stock: parseInt(p.stock || "0", 10) || 0,
             stock_visible: true,
-            active: true,
+            active: false,
             featured: false,
             promotion_active: false,
             promotion_price: null,
@@ -143,7 +143,7 @@ export const importNeuceProducts = createServerFn({ method: "POST" })
           };
         });
 
-        const { error } = await supabaseAdmin
+        const { error } = await supabase
           .from("products")
           .upsert(records, {
             onConflict: "internal_code",

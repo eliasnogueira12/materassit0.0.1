@@ -34,7 +34,10 @@ import {
   Layers,
   Database,
   Loader2,
+  Scan,
+  Link2,
 } from "lucide-react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import type { Json } from "@/integrations/supabase/types";
 import { broadcastSettingsChange } from "@/lib/settings-broadcast";
 
@@ -525,7 +528,7 @@ function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="credentials" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 gap-2 bg-muted p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-7 gap-2 bg-muted p-1 rounded-xl">
           <TabsTrigger
             value="credentials"
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
@@ -549,6 +552,12 @@ function AdminSettingsPage() {
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
           >
             <Image className="h-4 w-4" /> Marca
+          </TabsTrigger>
+          <TabsTrigger
+            value="barcodes"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
+            <Scan className="h-4 w-4" /> Códigos
           </TabsTrigger>
           <TabsTrigger
             value="import"
@@ -1277,6 +1286,10 @@ function AdminSettingsPage() {
         <TabsContent value="import" className="mt-4 focus-visible:outline-none">
           <NeuceImportPanel />
         </TabsContent>
+
+        <TabsContent value="barcodes" className="mt-4 focus-visible:outline-none">
+          <BarcodeLinkPanel />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -1313,7 +1326,7 @@ function NeuceImportPanel() {
         <CardTitle>Importar Produtos NEUCE</CardTitle>
         <CardDescription>
           Importa todos os produtos do catálogo NEUCE (neuce.com) para a base de dados.
-          Os produtos são inseridos com categoria "Pintura" e ficam imediatamente disponíveis no quiosque.
+          Os produtos ficam inativos — usa o separador "Códigos" para associar códigos de barras e ativá-los para o quiosque.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1345,5 +1358,192 @@ function NeuceImportPanel() {
         </Button>
       </CardFooter>
     </Card>
+  );
+}
+
+type PendingProduct = {
+  id: string;
+  internal_code: string | null;
+  name: string;
+  category: string | null;
+};
+
+function BarcodeLinkPanel() {
+  const [pending, setPending] = useState<PendingProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [barcode, setBarcode] = useState("");
+  const [internalCode, setInternalCode] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  async function loadPending() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("products")
+      .select("id, internal_code, name, category")
+      .not("internal_code", "is", null)
+      .is("barcode", null)
+      .eq("active", false)
+      .order("name");
+    setPending((data as PendingProduct[]) || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadPending(); }, []);
+
+  async function handleAssociate() {
+    setMessage(null);
+    const code = barcode.trim();
+    const ref = internalCode.trim();
+    if (!code || !ref) { setMessage({ type: "error", text: "Preenche o código de barras e a referência." }); return; }
+
+    setBusy(true);
+    try {
+      const { data: product, error: searchError } = await supabase
+        .from("products")
+        .select("id, name")
+        .eq("internal_code", ref)
+        .is("barcode", null)
+        .eq("active", false)
+        .single();
+
+      if (searchError || !product) {
+        setMessage({ type: "error", text: `Produto com referência "${ref}" não encontrado ou já tem código de barras.` });
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from("products")
+        .update({ barcode: code, active: true })
+        .eq("id", product.id);
+
+      if (updateError) {
+        setMessage({ type: "error", text: `Erro ao atualizar: ${updateError.message}` });
+        return;
+      }
+
+      setMessage({ type: "ok", text: `"${product.name}" ativado com código ${code}` });
+      setBarcode("");
+      setInternalCode("");
+      loadPending();
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Erro desconhecido" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteBarcode(productId: string) {
+    const { error } = await supabase
+      .from("products")
+      .update({ barcode: null, active: false })
+      .eq("id", productId);
+    if (error) toast.error(error.message);
+    else { toast.success("Associação removida"); loadPending(); }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Associar Código de Barras</CardTitle>
+          <CardDescription>
+            Scaneia o código de barras do produto físico e associa-o à referência (internal_code) do produto importado.
+            O produto fica ativo no quiosque automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Código de Barras</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="5901234123457"
+                />
+                <Button variant="outline" size="icon" onClick={() => setShowScanner(true)} title="Ler com câmara">
+                  <Scan className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Referência (internal_code)</Label>
+              <Input
+                value={internalCode}
+                onChange={(e) => setInternalCode(e.target.value)}
+                placeholder="PAR-M8"
+                list="pending-refs"
+              />
+              <datalist id="pending-refs">
+                {pending.map((p) => (
+                  <option key={p.id} value={p.internal_code ?? ""} label={p.name} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          {message && (
+            <div className={`rounded-xl p-3 text-sm ${message.type === "ok" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"}`}>
+              {message.text}
+            </div>
+          )}
+
+          <Button onClick={handleAssociate} disabled={busy || !barcode.trim() || !internalCode.trim()}>
+            {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+            {busy ? "A associar..." : "Associar e Ativar"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Produtos Importados Pendentes</CardTitle>
+          <CardDescription>
+            Produtos importados da NEUCE que ainda não têm código de barras associado.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : pending.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhum produto pendente. Importa produtos no separador "Importar" primeiro.
+            </p>
+          ) : (
+            <div className="max-h-96 overflow-y-auto space-y-1">
+              {pending.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-mono text-xs text-muted-foreground mr-2">{p.internal_code}</span>
+                    <span className="truncate">{p.name}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setInternalCode(p.internal_code ?? ""); }}
+                  >
+                    <Link2 className="h-3 w-3 mr-1" />
+                    Usar ref
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <BarcodeScanner
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={(code) => {
+          setBarcode(code);
+          setShowScanner(false);
+        }}
+      />
+    </div>
   );
 }
