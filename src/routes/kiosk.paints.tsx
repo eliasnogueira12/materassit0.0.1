@@ -2,6 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { useCart } from "@/lib/useCart";
+import { toast } from "sonner";
 import {
   Paintbrush,
   Ruler,
@@ -17,6 +20,7 @@ import {
   Hash,
   Star,
   Info,
+  Scan,
 } from "lucide-react";
 
 export const Route = createFileRoute("/kiosk/paints")({
@@ -98,7 +102,9 @@ function PaintsPage() {
       return JSON.parse(localStorage.getItem("paintFavorites") || "[]");
     } catch { return []; }
   });
+  const cart = useCart();
   const [animKey, setAnimKey] = useState(0);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("paintFavorites", JSON.stringify(favorites));
@@ -222,6 +228,13 @@ function PaintsPage() {
             <Paintbrush className="h-5 w-5" />
             <span className="font-bold">Mundo das Tintas</span>
           </div>
+          <button
+            onClick={() => setShowBarcodeScanner(true)}
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition"
+          >
+            <Scan className="h-4 w-4" />
+            Scanear
+          </button>
         </div>
       </div>
 
@@ -638,6 +651,26 @@ function PaintsPage() {
           </div>
         </div>
       </div>
+
+      <BarcodeScanner
+        open={showBarcodeScanner}
+        onDetected={async (barcode) => {
+          setShowBarcodeScanner(false);
+          const { data } = await supabase
+            .from("products")
+            .select("*")
+            .eq("barcode", barcode)
+            .eq("active", true)
+            .maybeSingle();
+          if (data) {
+            cart.addProduct(data.id, data.name, data.price ?? 0, "Mundo das Tintas");
+            toast(`"${data.name}" adicionado ao carrinho`);
+          } else {
+            toast("Produto não encontrado na base de dados.");
+          }
+        }}
+        onClose={() => setShowBarcodeScanner(false)}
+      />
     </div>
   );
 }

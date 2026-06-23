@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { importNeuceProducts } from "@/lib/neuce-import.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +32,8 @@ import {
   Move,
   Maximize,
   Layers,
+  Database,
+  Loader2,
 } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 import { broadcastSettingsChange } from "@/lib/settings-broadcast";
@@ -521,7 +525,7 @@ function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="credentials" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 gap-2 bg-muted p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-6 gap-2 bg-muted p-1 rounded-xl">
           <TabsTrigger
             value="credentials"
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
@@ -545,6 +549,12 @@ function AdminSettingsPage() {
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
           >
             <Image className="h-4 w-4" /> Marca
+          </TabsTrigger>
+          <TabsTrigger
+            value="import"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
+            <Database className="h-4 w-4" /> Importar
           </TabsTrigger>
         </TabsList>
 
@@ -1263,7 +1273,77 @@ function AdminSettingsPage() {
             </CardFooter>
           </Card>
         </TabsContent>
+
+        <TabsContent value="import" className="mt-4 focus-visible:outline-none">
+          <NeuceImportPanel />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function NeuceImportPanel() {
+  const importFn = useServerFn(importNeuceProducts);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{
+    total: number;
+    inserted: number;
+    errors: number;
+    details: string[];
+  } | null>(null);
+
+  async function handleImport() {
+    if (!confirm("Importar todos os produtos da NEUCE para a base de dados?")) return;
+    setImporting(true);
+    setResult(null);
+    try {
+      const res = await importFn({ data: {} });
+      setResult(res as any);
+      toast.success(`${res.inserted} produtos importados da NEUCE`);
+    } catch (err) {
+      toast.error("Erro na importação: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Importar Produtos NEUCE</CardTitle>
+        <CardDescription>
+          Importa todos os produtos do catálogo NEUCE (neuce.com) para a base de dados.
+          Os produtos são inseridos com categoria "Pintura" e ficam imediatamente disponíveis no quiosque.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {result && (
+          <div className="bg-muted rounded-xl p-4 space-y-2 text-sm">
+            <p className="font-semibold">Resultado da importação:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>Total encontrado: {result.total}</li>
+              <li>Inseridos: {result.inserted}</li>
+              <li>Erros: {result.errors}</li>
+            </ul>
+            {result.details.length > 0 && (
+              <details className="text-xs text-muted-foreground">
+                <summary className="cursor-pointer hover:text-foreground">Detalhes</summary>
+                <ul className="mt-2 space-y-0.5 list-disc list-inside">
+                  {result.details.map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={handleImport} disabled={importing}>
+          {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
+          {importing ? "A importar..." : "Importar Produtos NEUCE"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
