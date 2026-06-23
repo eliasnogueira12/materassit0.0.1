@@ -15,6 +15,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as KioskStartRouteImport } from './routes/kiosk.start'
 import { Route as KioskSearchRouteImport } from './routes/kiosk.search'
+import { Route as KioskPaintsRouteImport } from './routes/kiosk.paints'
+import { Route as KioskAssistantRouteImport } from './routes/kiosk.assistant'
 import { Route as KioskProblemsRouteImport } from './routes/kiosk.problems'
 import { Route as KioskIdentifyRouteImport } from './routes/kiosk.identify'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -59,6 +61,16 @@ const KioskStartRoute = KioskStartRouteImport.update({
 const KioskSearchRoute = KioskSearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => KioskRoute,
+} as any)
+const KioskPaintsRoute = KioskPaintsRouteImport.update({
+  id: '/paints',
+  path: '/paints',
+  getParentRoute: () => KioskRoute,
+} as any)
+const KioskAssistantRoute = KioskAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => KioskRoute,
 } as any)
 const KioskProblemsRoute = KioskProblemsRouteImport.update({
@@ -155,6 +167,8 @@ export interface FileRoutesByFullPath {
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin/': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -177,6 +191,8 @@ export interface FileRoutesByTo {
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -201,6 +217,8 @@ export interface FileRoutesById {
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin/': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -226,6 +244,8 @@ export interface FileRouteTypes {
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
+    | '/kiosk/paints'
+    | '/kiosk/assistant'
     | '/admin/'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -248,6 +268,8 @@ export interface FileRouteTypes {
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
+    | '/kiosk/paints'
+    | '/kiosk/assistant'
     | '/admin'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -271,6 +293,8 @@ export interface FileRouteTypes {
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
+    | '/kiosk/paints'
+    | '/kiosk/assistant'
     | '/admin/'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -318,6 +342,20 @@ declare module '@tanstack/react-router' {
       path: '/start'
       fullPath: '/kiosk/start'
       preLoaderRoute: typeof KioskStartRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/kiosk/paints': {
+      id: '/kiosk/paints'
+      path: '/paints'
+      fullPath: '/kiosk/paints'
+      preLoaderRoute: typeof KioskPaintsRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/kiosk/assistant': {
+      id: '/kiosk/assistant'
+      path: '/assistant'
+      fullPath: '/kiosk/assistant'
+      preLoaderRoute: typeof KioskAssistantRouteImport
       parentRoute: typeof KioskRoute
     }
     '/kiosk/search': {
@@ -469,6 +507,8 @@ interface KioskRouteChildren {
   KioskIdentifyRoute: typeof KioskIdentifyRoute
   KioskProblemsRoute: typeof KioskProblemsRoute
   KioskSearchRoute: typeof KioskSearchRoute
+  KioskPaintsRoute: typeof KioskPaintsRoute
+  KioskAssistantRoute: typeof KioskAssistantRoute
   KioskStartRoute: typeof KioskStartRoute
   KioskInvoiceTokenRoute: typeof KioskInvoiceTokenRoute
   KioskProblemIdRoute: typeof KioskProblemIdRoute
@@ -479,6 +519,8 @@ const KioskRouteChildren: KioskRouteChildren = {
   KioskIdentifyRoute: KioskIdentifyRoute,
   KioskProblemsRoute: KioskProblemsRoute,
   KioskSearchRoute: KioskSearchRoute,
+  KioskPaintsRoute: KioskPaintsRoute,
+  KioskAssistantRoute: KioskAssistantRoute,
   KioskStartRoute: KioskStartRoute,
   KioskInvoiceTokenRoute: KioskInvoiceTokenRoute,
   KioskProblemIdRoute: KioskProblemIdRoute,

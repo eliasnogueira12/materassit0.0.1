@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Home, Search, Wrench, Sparkles, Clock } from "lucide-react";
+import { Home, Search, Wrench, Sparkles, Clock, Paintbrush } from "lucide-react";
 import { useKioskIdle } from "@/lib/kiosk-idle";
 import { Logo } from "@/components/Logo";
 import {
@@ -32,7 +32,9 @@ function KioskLayout() {
           <span className="text-xl font-bold">MaterAssist</span>
         </Link>
         <nav className="flex gap-2">
-          <NavLink to="/kiosk/start" icon={<Sparkles className="h-5 w-5" />} label="Assistente" />
+          <NavLink to="/kiosk/start" icon={<Home className="h-5 w-5" />} label="Início" />
+          <NavLink to="/kiosk/paints" icon={<Paintbrush className="h-5 w-5" />} label="Tintas" />
+          <NavLink to="/kiosk/assistant" icon={<Sparkles className="h-5 w-5" />} label="Assistente" />
           <NavLink to="/kiosk/search" icon={<Search className="h-5 w-5" />} label="Produtos" />
           <NavLink to="/kiosk/problems" icon={<Wrench className="h-5 w-5" />} label="Problemas" />
           <button
