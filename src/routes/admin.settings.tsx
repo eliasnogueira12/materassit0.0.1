@@ -319,6 +319,54 @@ function AdminSettingsPage() {
     saveSetting("theme", theme, "Tema e cores do ecrã principal guardados!");
   }
 
+  // Color extraction from image
+  async function extractColorsFromImage(url: string): Promise<{ from: string; to: string } | null> {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+      });
+      img.src = url;
+      await loaded;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      const size = 50;
+      canvas.width = size;
+      canvas.height = size;
+      ctx.drawImage(img, 0, 0, size, size);
+
+      const imageData = ctx.getImageData(0, 0, size, size).data;
+      const colorMap = new Map<string, number>();
+
+      for (let i = 0; i < imageData.length; i += 4) {
+        const r = Math.round(imageData[i] / 32) * 32;
+        const g = Math.round(imageData[i + 1] / 32) * 32;
+        const b = Math.round(imageData[i + 2] / 32) * 32;
+        const key = `${r},${g},${b}`;
+        colorMap.set(key, (colorMap.get(key) || 0) + (imageData[i + 3] || 255));
+      }
+
+      const sorted = [...colorMap.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([key]) => {
+          const [r, g, b] = key.split(",").map(Number);
+          return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+        });
+
+      if (sorted.length < 2) return null;
+
+      return { from: sorted[0], to: sorted[sorted.length - 1] };
+    } catch {
+      return null;
+    }
+  }
+
   // Overlay Upload
   const [uploadingOverlay, setUploadingOverlay] = useState(false);
   const [uploadingPreset, setUploadingPreset] = useState(false);
@@ -354,8 +402,20 @@ function AdminSettingsPage() {
           opacity: 90,
           enabled: true,
         };
-        setTheme((p) => ({ ...p, overlays: [...p.overlays, overlay] }));
-        toast.success(`Imagem adicionada ao preset "${label}"! Guarde o tema para aplicar.`);
+
+        // Auto-extract colors from the image and apply to gradient
+        const colors = await extractColorsFromImage(publicUrl);
+        if (colors) {
+          setTheme((p) => ({
+            gradientFrom: colors.from,
+            gradientTo: colors.to,
+            overlays: [...(Array.isArray(p.overlays) ? p.overlays : []), overlay],
+          }));
+          toast.success(`Cores extraídas da imagem! Tema "${label}" aplicado.`);
+        } else {
+          setTheme((p) => ({ ...p, overlays: [...(Array.isArray(p.overlays) ? p.overlays : []), overlay] }));
+          toast.success(`Imagem adicionada ao preset "${label}"! Guarde o tema para aplicar.`);
+        }
       } else {
         // Manual overlay
         const overlay: ThemeOverlay = {
@@ -960,6 +1020,26 @@ function AdminSettingsPage() {
                             />
                           </div>
                           <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const colors = await extractColorsFromImage(o.imageUrl);
+                                if (colors) {
+                                  setTheme((p) => ({
+                                    ...p,
+                                    gradientFrom: colors.from,
+                                    gradientTo: colors.to,
+                                  }));
+                                  toast.success("Cores extraídas da imagem e aplicadas ao fundo!");
+                                } else {
+                                  toast.error("Não foi possível extrair cores desta imagem.");
+                                }
+                              }}
+                              className="p-1.5 hover:bg-accent/10 text-muted-foreground hover:text-accent rounded-lg transition"
+                              title="Extrair cores desta imagem para o fundo"
+                            >
+                              <Palette className="h-3.5 w-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() =>
