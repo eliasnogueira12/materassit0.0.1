@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -12,7 +12,18 @@ export function useAdminSession() {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<Status>("loading");
 
+  // Safety timeout: se o getSession demorar mais de 15s, passamos a anonymous.
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const clearSafetyTimeout = useCallback(() => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = undefined;
+    }
+  }, []);
+
   const checkRole = useCallback(async (u: User | null) => {
+    clearSafetyTimeout();
     setUser(u);
     if (!u) {
       setStatus("anonymous");
@@ -28,27 +39,48 @@ export function useAdminSession() {
       .then(({ error }) => {
         if (error) console.warn("[admin role upsert]", error.message);
       });
-  }, []);
+  }, [clearSafetyTimeout]);
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) checkRole(data.session?.user ?? null);
-    });
+
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (active) {
+        console.warn("[admin session] getSession timeout — forcing anonymous");
+        checkRole(null);
+      }
+    }, 15_000);
+
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (active) checkRole(data.session?.user ?? null);
+      })
+      .catch((err) => {
+        console.error("[admin session] getSession error", err);
+        if (active) checkRole(null);
+      });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_e, s) => {
       if (active) checkRole(s?.user ?? null);
     });
+
     return () => {
       active = false;
+      clearSafetyTimeout();
       subscription.unsubscribe();
     };
-  }, [checkRole]);
+  }, [checkRole, clearSafetyTimeout]);
 
   const recheck = useCallback(async () => {
-    const { data } = await supabase.auth.getUser();
-    await checkRole(data.user ?? null);
+    try {
+      const { data } = await supabase.auth.getUser();
+      await checkRole(data.user ?? null);
+    } catch (err) {
+      console.error("[admin session] recheck error", err);
+      checkRole(null);
+    }
   }, [checkRole]);
 
   return { user, status, recheck };

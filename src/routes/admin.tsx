@@ -115,7 +115,13 @@ function AdminLayout() {
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <div className="h-8 w-8 mx-auto mb-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          Estamos a preparar o painel…
+          <p>Estamos a preparar o painel…</p>
+          <button
+            onClick={() => recheck()}
+            className="mt-6 px-4 py-2 rounded-lg border text-sm hover:bg-accent transition"
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     );

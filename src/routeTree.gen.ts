@@ -15,10 +15,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as KioskStartRouteImport } from './routes/kiosk.start'
 import { Route as KioskSearchRouteImport } from './routes/kiosk.search'
-import { Route as KioskPaintsRouteImport } from './routes/kiosk.paints'
-import { Route as KioskAssistantRouteImport } from './routes/kiosk.assistant'
 import { Route as KioskProblemsRouteImport } from './routes/kiosk.problems'
+import { Route as KioskPaintsRouteImport } from './routes/kiosk.paints'
 import { Route as KioskIdentifyRouteImport } from './routes/kiosk.identify'
+import { Route as KioskAssistantRouteImport } from './routes/kiosk.assistant'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminQrcodesRouteImport } from './routes/admin.qrcodes'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
@@ -63,24 +63,24 @@ const KioskSearchRoute = KioskSearchRouteImport.update({
   path: '/search',
   getParentRoute: () => KioskRoute,
 } as any)
-const KioskPaintsRoute = KioskPaintsRouteImport.update({
-  id: '/paints',
-  path: '/paints',
-  getParentRoute: () => KioskRoute,
-} as any)
-const KioskAssistantRoute = KioskAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => KioskRoute,
-} as any)
 const KioskProblemsRoute = KioskProblemsRouteImport.update({
   id: '/problems',
   path: '/problems',
   getParentRoute: () => KioskRoute,
 } as any)
+const KioskPaintsRoute = KioskPaintsRouteImport.update({
+  id: '/paints',
+  path: '/paints',
+  getParentRoute: () => KioskRoute,
+} as any)
 const KioskIdentifyRoute = KioskIdentifyRouteImport.update({
   id: '/identify',
   path: '/identify',
+  getParentRoute: () => KioskRoute,
+} as any)
+const KioskAssistantRoute = KioskAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => KioskRoute,
 } as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
@@ -163,12 +163,12 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
-  '/kiosk/paints': typeof KioskPaintsRoute
-  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin/': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -187,12 +187,12 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
-  '/kiosk/paints': typeof KioskPaintsRoute
-  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -213,12 +213,12 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/qrcodes': typeof AdminQrcodesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/kiosk/assistant': typeof KioskAssistantRoute
   '/kiosk/identify': typeof KioskIdentifyRoute
+  '/kiosk/paints': typeof KioskPaintsRoute
   '/kiosk/problems': typeof KioskProblemsRoute
   '/kiosk/search': typeof KioskSearchRoute
   '/kiosk/start': typeof KioskStartRoute
-  '/kiosk/paints': typeof KioskPaintsRoute
-  '/kiosk/assistant': typeof KioskAssistantRoute
   '/admin/': typeof AdminIndexRoute
   '/kiosk/invoice/$token': typeof KioskInvoiceTokenRoute
   '/kiosk/problem/$id': typeof KioskProblemIdRoute
@@ -240,12 +240,12 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/qrcodes'
     | '/admin/settings'
+    | '/kiosk/assistant'
     | '/kiosk/identify'
+    | '/kiosk/paints'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
-    | '/kiosk/paints'
-    | '/kiosk/assistant'
     | '/admin/'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -264,12 +264,12 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/qrcodes'
     | '/admin/settings'
+    | '/kiosk/assistant'
     | '/kiosk/identify'
+    | '/kiosk/paints'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
-    | '/kiosk/paints'
-    | '/kiosk/assistant'
     | '/admin'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -289,12 +289,12 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/qrcodes'
     | '/admin/settings'
+    | '/kiosk/assistant'
     | '/kiosk/identify'
+    | '/kiosk/paints'
     | '/kiosk/problems'
     | '/kiosk/search'
     | '/kiosk/start'
-    | '/kiosk/paints'
-    | '/kiosk/assistant'
     | '/admin/'
     | '/kiosk/invoice/$token'
     | '/kiosk/problem/$id'
@@ -344,20 +344,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskStartRouteImport
       parentRoute: typeof KioskRoute
     }
-    '/kiosk/paints': {
-      id: '/kiosk/paints'
-      path: '/paints'
-      fullPath: '/kiosk/paints'
-      preLoaderRoute: typeof KioskPaintsRouteImport
-      parentRoute: typeof KioskRoute
-    }
-    '/kiosk/assistant': {
-      id: '/kiosk/assistant'
-      path: '/assistant'
-      fullPath: '/kiosk/assistant'
-      preLoaderRoute: typeof KioskAssistantRouteImport
-      parentRoute: typeof KioskRoute
-    }
     '/kiosk/search': {
       id: '/kiosk/search'
       path: '/search'
@@ -372,11 +358,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskProblemsRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/kiosk/paints': {
+      id: '/kiosk/paints'
+      path: '/paints'
+      fullPath: '/kiosk/paints'
+      preLoaderRoute: typeof KioskPaintsRouteImport
+      parentRoute: typeof KioskRoute
+    }
     '/kiosk/identify': {
       id: '/kiosk/identify'
       path: '/identify'
       fullPath: '/kiosk/identify'
       preLoaderRoute: typeof KioskIdentifyRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/kiosk/assistant': {
+      id: '/kiosk/assistant'
+      path: '/assistant'
+      fullPath: '/kiosk/assistant'
+      preLoaderRoute: typeof KioskAssistantRouteImport
       parentRoute: typeof KioskRoute
     }
     '/admin/settings': {
@@ -504,11 +504,11 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface KioskRouteChildren {
+  KioskAssistantRoute: typeof KioskAssistantRoute
   KioskIdentifyRoute: typeof KioskIdentifyRoute
+  KioskPaintsRoute: typeof KioskPaintsRoute
   KioskProblemsRoute: typeof KioskProblemsRoute
   KioskSearchRoute: typeof KioskSearchRoute
-  KioskPaintsRoute: typeof KioskPaintsRoute
-  KioskAssistantRoute: typeof KioskAssistantRoute
   KioskStartRoute: typeof KioskStartRoute
   KioskInvoiceTokenRoute: typeof KioskInvoiceTokenRoute
   KioskProblemIdRoute: typeof KioskProblemIdRoute
@@ -516,11 +516,11 @@ interface KioskRouteChildren {
 }
 
 const KioskRouteChildren: KioskRouteChildren = {
+  KioskAssistantRoute: KioskAssistantRoute,
   KioskIdentifyRoute: KioskIdentifyRoute,
+  KioskPaintsRoute: KioskPaintsRoute,
   KioskProblemsRoute: KioskProblemsRoute,
   KioskSearchRoute: KioskSearchRoute,
-  KioskPaintsRoute: KioskPaintsRoute,
-  KioskAssistantRoute: KioskAssistantRoute,
   KioskStartRoute: KioskStartRoute,
   KioskInvoiceTokenRoute: KioskInvoiceTokenRoute,
   KioskProblemIdRoute: KioskProblemIdRoute,
