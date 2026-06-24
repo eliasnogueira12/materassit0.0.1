@@ -51,26 +51,32 @@ export function useAdminSession() {
       }
     }, 15_000);
 
-    supabase.auth.getSession()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
         if (active) checkRole(data.session?.user ?? null);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("[admin session] getSession error", err);
         if (active) checkRole(null);
+      }
+    })();
+
+    try {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_e, s) => {
+        if (active) checkRole(s?.user ?? null);
       });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (active) checkRole(s?.user ?? null);
-    });
-
-    return () => {
-      active = false;
-      clearSafetyTimeout();
-      subscription.unsubscribe();
-    };
+      return () => {
+        active = false;
+        clearSafetyTimeout();
+        subscription.unsubscribe();
+      };
+    } catch (err) {
+      console.error("[admin session] onAuthStateChange error", err);
+      return () => { active = false; clearSafetyTimeout(); };
+    }
   }, [checkRole, clearSafetyTimeout]);
 
   const recheck = useCallback(async () => {
