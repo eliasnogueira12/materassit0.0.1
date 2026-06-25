@@ -15,9 +15,14 @@ import {
   Heart,
   RotateCcw,
   Hash,
-  Star,
   Info,
   Search,
+  BookOpen,
+  Lightbulb,
+  Thermometer,
+  Shield,
+  Sun,
+  Droplet,
 } from "lucide-react";
 
 export const Route = createFileRoute("/kiosk/paints")({
@@ -64,6 +69,78 @@ const SURFACE_CATEGORY_MAP: Record<string, string[]> = {
   teto: ["Tintas Decorativas"],
 };
 
+const SURFACE_GUIDES: Record<string, { tip: string; preparation: string; why: string }> = {
+  interior: {
+    tip: "Ambientes interiores precisam de tintas com baixo odor e boa lavabilidade. Prefira mate para quartos e acetinado para cozinhas e corredores.",
+    preparation: "Limpar a superfície, lixar imperfeições, aplicar primário se necessário. Proteger móveis e chão.",
+    why: "As tintas para interior são formuladas para serem laváveis, não amarelarem com o tempo e terem baixo cheiro.",
+  },
+  exterior: {
+    tip: "Fachadas sofrem com sol, chuva e variação de temperatura. Use tintas elastométricas ou acrílicas com proteção UV e resistência à humidade.",
+    preparation: "Limpar com água e escova, remover bolor e ferrugem, aplicar primário selante. Pintar em dias secos (15-30°C).",
+    why: "Tintas exteriores têm resinas especiais que formam uma película flexível, resistente a fissuras e à radiação UV.",
+  },
+  madeira: {
+    tip: "A madeira precisa de proteção contra humidade, insetos e raios UV. Use vernizes, esmaltes ou stain para madeira.",
+    preparation: "Lixar bem, remover pó, aplicar primário para madeira. Para exteriores, use produtos com proteção UV e fungicida.",
+    why: "A madeira dilata e contrai com a humidade — as tintas para madeira têm elasticidade para acompanhar esse movimento sem fissurar.",
+  },
+  metal: {
+    tip: "Superfícies metálicas oxidam se não protegidas. Use tinta anticorrosiva ou esmalte sintético com primário antioxidante.",
+    preparation: "Remover ferrugem com escova de arame, lixar, desengordurar, aplicar primário anticorrosivo antes da tinta.",
+    why: "O primário anticorrosivo cria uma barreira que impede a oxidação do metal. O acabamento brilhante é mais duro e resistente.",
+  },
+  teto: {
+    tip: "Tetos exigem tinta antigotejamento e sem reflexos. Use tinta mate específica para tetos, que disfarça imperfeições.",
+    preparation: "Proteger chão e móveis. Aplicar primário selante se houver manchas de humidade. Usar rolo de pelo alto.",
+    why: "Tinta mate não reflete luz, disfarçando irregularidades. A fórmula antigotejamento evita pingos durante a aplicação.",
+  },
+};
+
+const FINISH_GUIDES: Record<string, { desc: string; bestFor: string; avoid: string; maintenance: string }> = {
+  mate: {
+    desc: "Acabamento sem brilho que disfarça imperfeições da parede. Toque aveludado e elegante.",
+    bestFor: "Quartos, salas de estar, tetos — locais com pouco tráfego e onde se quer um ambiente aconchegante.",
+    avoid: "Cozinhas, casas de banho, corredores — áreas com muita humidade ou que precisam de lavagens frequentes.",
+    maintenance: "Menos resistente a limpezas. Limpar com pano seco ou levemente húmido, sem esfregar.",
+  },
+  acetinado: {
+    desc: "Brilho suave e sedoso. Fácil de limpar, ideal para áreas de uso moderado.",
+    bestFor: "Cozinhas, casas de banho, corredores, quartos de criança — áreas que precisam de limpezas regulares.",
+    avoid: "Tetos com imperfeições (o brilho suave pode realçar irregularidades) e exteriores muito expostos.",
+    maintenance: "Resiste bem a limpezas com pano húmido e detergente suave. Ótimo custo-benefício.",
+  },
+  brilhante: {
+    desc: "Alto brilho e reflexo. Acabamento duro, resistente e muito fácil de limpar.",
+    bestFor: "Portas, rodapés, guarnições, móveis, exteriores — superfícies que precisam de alta resistência.",
+    avoid: "Paredes interiores grandes (o brilho excessivo cansa a vista e realça imperfeições) e tetos.",
+    maintenance: "Excelente resistência. Lava-se facilmente com água e sabão. Ideal para áreas de alto tráfego.",
+  },
+};
+
+const PAINT_TIPS = [
+  {
+    icon: <Thermometer className="h-5 w-5" />,
+    title: "Temperatura ideal",
+    text: "Pinte entre 15°C e 30°C. Evite pintar em dias de chuva ou muito vento (exterior) ou com humidade >80%.",
+  },
+  {
+    icon: <Shield className="h-5 w-5" />,
+    title: "Primário primeiro",
+    text: "Aplicar primário antes da tinta melhora a aderência, cobre manchas e reduz o número de demãos necessárias.",
+  },
+  {
+    icon: <Sun className="h-5 w-5" />,
+    title: "Secagem entre demãos",
+    text: "Espere 4-6h entre demãos para tintas aquosas, 8-12h para esmaltes sintéticos. Respeitar os tempos evita bolhas.",
+  },
+  {
+    icon: <Droplet className="h-5 w-5" />,
+    title: "Diluição correta",
+    text: "Não dilua em excesso. A maioria das tintas aquosas leva 10-15% de água. Esmaltes sintéticos usam diluente próprio.",
+  },
+];
+
 const SWATCHES = [
   { name: "Branco Neve", hex: "#f5f5f0" },
   { name: "Branco Gelo", hex: "#f0f4f8" },
@@ -91,7 +168,70 @@ const SWATCHES = [
   { name: "Vinho", hex: "#6b2f3a" },
 ];
 
-type Step = "welcome" | "surface" | "finish" | "calculate" | "result";
+function normalize(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function scoreProduct(queryWords: string[], p: any): number {
+  const name = normalize(p.name || "");
+  const desc = normalize(p.description || "");
+  const cat = normalize(p.category || "");
+  const kw = normalize(p.keywords || "");
+
+  let score = 0;
+  const textFields = [
+    { text: name, weight: 3 },
+    { text: kw, weight: 2.5 },
+    { text: cat, weight: 2 },
+    { text: desc, weight: 1.5 },
+  ];
+
+  for (const q of queryWords) {
+    for (const { text, weight } of textFields) {
+      if (text.includes(q)) {
+        score += weight;
+        continue;
+      }
+      const words = text.split(/\s+/);
+      if (words.some((w: string) => w.startsWith(q) || q.startsWith(w))) {
+        score += weight * 0.5;
+      }
+    }
+  }
+
+  const bigrams = queryWords.slice(0, -1).map((_, i) => queryWords[i] + " " + queryWords[i + 1]);
+  for (const bg of bigrams) {
+    if (name.includes(bg)) score += 5;
+    if (desc.includes(bg)) score += 3;
+    if (cat.includes(bg)) score += 2;
+  }
+
+  if (p.featured) score *= 1.15;
+
+  return score;
+}
+
+function searchPaintsByDescription(query: string, products: any[]) {
+  if (!query.trim()) return [];
+  const q = normalize(query);
+  const queryWords = q.split(/\s+/).filter((w) => w.length > 1);
+  if (queryWords.length === 0) return [];
+
+  const scored = products
+    .map((p) => ({ product: p, score: scoreProduct(queryWords, p) }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, 8);
+}
+
+type Step = "welcome" | "describe" | "surface" | "finish" | "calculate" | "result";
 
 function PaintsPage() {
   const [step, setStep] = useState<Step>("welcome");
@@ -107,6 +247,8 @@ function PaintsPage() {
     try { return JSON.parse(localStorage.getItem("paintFavorites") || "[]"); } catch { return []; }
   });
   const [animKey, setAnimKey] = useState(0);
+  const [describeQuery, setDescribeQuery] = useState("");
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("paintFavorites", JSON.stringify(favorites));
@@ -137,6 +279,17 @@ function PaintsPage() {
       return data ?? [];
     },
   });
+
+  const [debouncedDescribe, setDebouncedDescribe] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedDescribe(describeQuery), 300);
+    return () => clearTimeout(t);
+  }, [describeQuery]);
+
+  const describedResults = useMemo(() => {
+    if (!debouncedDescribe.trim() || paintProducts.length === 0) return [];
+    return searchPaintsByDescription(debouncedDescribe, paintProducts);
+  }, [debouncedDescribe, paintProducts]);
 
   const recommendedProducts = useMemo(() => {
     if (!surface || paintProducts.length === 0) return [];
@@ -180,6 +333,8 @@ function PaintsPage() {
     setHeight("");
     setWalls("1");
     setCoats("2");
+    setDescribeQuery("");
+    setShowGuide(false);
   }
 
   return (
@@ -200,10 +355,10 @@ function PaintsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {step !== "welcome" && (
+          {step !== "welcome" && (
           <div className="flex items-center justify-center gap-2 mb-8">
-            {(["surface", "finish", "calculate", "result"] as Step[]).map((s, i) => {
-              const order: Step[] = ["surface", "finish", "calculate", "result"];
+            {(["describe", "surface", "finish", "calculate", "result"] as Step[]).map((s, i) => {
+              const order: Step[] = ["describe", "surface", "finish", "calculate", "result"];
               const idx = order.indexOf(step);
               return (
                 <div key={s} className="flex items-center gap-2">
@@ -223,7 +378,7 @@ function PaintsPage() {
                   >
                     {i < idx ? <Check className="h-4 w-4" /> : i + 1}
                   </button>
-                  {i < 3 && <div className={`w-8 h-0.5 ${i < idx ? "" : "bg-gray-200"}`} style={{ backgroundColor: i < idx ? NEUCE_RED : undefined }} />}
+                  {i < 4 && <div className={`w-8 h-0.5 ${i < idx ? "" : "bg-gray-200"}`} style={{ backgroundColor: i < idx ? NEUCE_RED : undefined }} />}
                 </div>
               );
             })}
@@ -232,36 +387,160 @@ function PaintsPage() {
 
         <div key={animKey} className="animate-fade-in">
           {step === "welcome" && (
-            <div className="text-center py-8">
+            <div className="text-center py-6">
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ backgroundColor: NEUCE_RED }}>
                 <Paintbrush className="h-10 w-10 text-white" />
               </div>
               <h1 className="text-4xl font-black text-gray-900 mb-3">
                 Encontre a Tinta Perfeita
               </h1>
-              <p className="text-gray-500 mb-8 max-w-md mx-auto">
+              <p className="text-gray-500 mb-6 max-w-md mx-auto">
                 Descubra a tinta ideal para o seu projeto, calcule a quantidade certa e explore cores.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                {[
-                  { icon: "🎯", title: "Produto Certo", desc: "Guia rápido para escolher" },
-                  { icon: "📐", title: "Calculadora", desc: "Quantos litros precisa" },
-                  { icon: "🎨", title: "Explorar Cores", desc: "Visualizar no ecrã" },
-                ].map((item) => (
-                  <div key={item.title} className="bg-gray-50 rounded-2xl p-5 text-center border border-gray-100">
-                    <div className="text-3xl mb-2">{item.icon}</div>
-                    <div className="font-bold text-sm text-gray-900">{item.title}</div>
-                    <div className="text-xs text-gray-500 mt-1">{item.desc}</div>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-lg mx-auto">
+                <button
+                  onClick={() => goTo("describe")}
+                  className="group bg-gray-50 rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all hover:-translate-y-1"
+                >
+                  <div className="text-4xl mb-3">🔍</div>
+                  <div className="font-bold text-lg text-gray-900">Descreva o seu projeto</div>
+                  <div className="text-sm text-gray-500 mt-1">Diga o que precisa e nós recomendamos</div>
+                </button>
+                <button
+                  onClick={() => goTo("surface")}
+                  className="group bg-gray-50 rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all hover:-translate-y-1"
+                >
+                  <div className="text-4xl mb-3">🎯</div>
+                  <div className="font-bold text-lg text-gray-900">Guia rápido</div>
+                  <div className="text-sm text-gray-500 mt-1">Escolha superfície e acabamento</div>
+                </button>
+                <button
+                  onClick={() => { setSurface("interior"); setShowGuide(true); goTo("surface"); }}
+                  className="group bg-gray-50 rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all hover:-translate-y-1"
+                >
+                  <div className="text-4xl mb-3">📖</div>
+                  <div className="font-bold text-lg text-gray-900">Guias de pintura</div>
+                  <div className="text-sm text-gray-500 mt-1">Dicas, preparação e truques</div>
+                </button>
+                <button
+                  onClick={() => { setSurface("interior"); goTo("calculate"); }}
+                  className="group bg-gray-50 rounded-2xl p-6 text-center border-2 border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all hover:-translate-y-1"
+                >
+                  <div className="text-4xl mb-3">📐</div>
+                  <div className="font-bold text-lg text-gray-900">Calculadora</div>
+                  <div className="text-sm text-gray-500 mt-1">Quantos litros precisa</div>
+                </button>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2 mb-8">
+                {["Interior", "Exterior", "Madeira", "Metal", "Teto"].map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => {
+                      const id = tag.toLowerCase();
+                      setSurface(id);
+                      setFinish("");
+                      goTo("finish");
+                    }}
+                    className="px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-rose-100 hover:text-rose-700 transition border border-gray-200"
+                  >
+                    {tag}
+                  </button>
                 ))}
               </div>
-              <button
-                onClick={() => goTo("surface")}
-                className="text-white font-bold text-xl px-12 py-5 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform"
-                style={{ backgroundColor: NEUCE_RED }}
-              >
-                Começar <Sparkles className="inline h-5 w-5 ml-2" />
-              </button>
+            </div>
+          )}
+
+          {step === "describe" && (
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 text-center mb-2">Descreva o seu projeto</h2>
+              <p className="text-center text-gray-500 mb-6 max-w-sm mx-auto">
+                Conte-nos o que quer pintar e nós encontramos os produtos ideais para si.
+              </p>
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-4">
+                <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 mb-4">
+                  <Search className="h-5 w-5 text-gray-400 shrink-0" />
+                  <input
+                    autoFocus
+                    value={describeQuery}
+                    onChange={(e) => setDescribeQuery(e.target.value)}
+                    placeholder="Ex: tinta branca para cozinha, verniz para madeira exterior, pintar portão de ferro..."
+                    className="flex-1 bg-transparent text-gray-900 outline-none text-base placeholder-gray-400"
+                  />
+                  {describeQuery && (
+                    <button onClick={() => setDescribeQuery("")} className="text-gray-400 hover:text-gray-600">
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {describeQuery && !debouncedDescribe && (
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <span className="h-4 w-4 rounded-full border-2 border-gray-300 border-t-transparent animate-spin" />
+                    A pesquisar...
+                  </div>
+                )}
+                {describedResults.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-3 font-semibold">
+                      {describedResults.length} produto{describedResults.length > 1 ? "s" : ""} encontrado{describedResults.length > 1 ? "s" : ""}:
+                    </p>
+                    <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                      {describedResults.map(({ product: p, score }) => (
+                        <Link
+                          key={p.id}
+                          to="/kiosk/product/$id"
+                          params={{ id: p.id }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition border border-gray-100"
+                        >
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-contain bg-white border border-gray-100" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <Paintbrush className="h-7 w-7 text-gray-300" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-gray-900 text-sm">{p.name}</div>
+                            {p.description && (
+                              <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{p.description}</div>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              {p.price != null && (
+                                <span className="text-xs font-semibold text-gray-700">
+                                  {p.price.toFixed(2).replace(".", ",")}€
+                                </span>
+                              )}
+                              <span className="text-[10px] text-gray-400">{p.category}</span>
+                              <span className="text-[10px] text-gray-400 ml-auto">
+                                relevância {Math.round(score)}
+                              </span>
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-gray-300 shrink-0" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {debouncedDescribe && describedResults.length === 0 && (
+                  <div className="text-center py-8">
+                    <Search className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">Nenhum produto encontrado.</p>
+                    <p className="text-gray-400 text-sm mt-1">Tente descrever com outras palavras ou use o guia rápido.</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between">
+                <button onClick={() => goTo("welcome")} className="text-gray-500 hover:text-gray-900 text-sm flex items-center gap-1 font-semibold">
+                  <ArrowLeft className="h-4 w-4" /> Voltar
+                </button>
+                <button
+                  onClick={() => goTo("surface")}
+                  className="text-sm font-semibold flex items-center gap-1 hover:opacity-80"
+                  style={{ color: NEUCE_RED }}
+                >
+                  Ou use o guia rápido <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -289,8 +568,47 @@ function PaintsPage() {
                   </button>
                 ))}
               </div>
+
+              {surface && SURFACE_GUIDES[surface] && (
+                <div className="mt-6 space-y-3">
+                  <button
+                    onClick={() => setShowGuide(!showGuide)}
+                    className="w-full flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 hover:bg-gray-100 transition"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {showGuide ? "Ocultar" : "Ver"} guia para {surfaceLabel}
+                    <span className="ml-auto">{showGuide ? "▲" : "▼"}</span>
+                  </button>
+                  {showGuide && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3 animate-fade-in">
+                      <div className="flex gap-3">
+                        <Lightbulb className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-amber-800 text-sm">Dica</span>
+                          <p className="text-amber-700 text-sm mt-0.5">{SURFACE_GUIDES[surface].tip}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-amber-800 text-sm">Preparação</span>
+                          <p className="text-amber-700 text-sm mt-0.5">{SURFACE_GUIDES[surface].preparation}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Shield className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-amber-800 text-sm">Porquê?</span>
+                          <p className="text-amber-700 text-sm mt-0.5">{SURFACE_GUIDES[surface].why}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between mt-6">
-                <button onClick={() => goTo("welcome")} className="text-gray-500 hover:text-gray-900 text-sm flex items-center gap-1 font-semibold">
+                <button onClick={() => goTo("describe")} className="text-gray-500 hover:text-gray-900 text-sm flex items-center gap-1 font-semibold">
                   <ArrowLeft className="h-4 w-4" /> Voltar
                 </button>
               </div>
@@ -332,6 +650,52 @@ function PaintsPage() {
                   );
                 })}
               </div>
+
+              {finish && FINISH_GUIDES[finish] && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowGuide(!showGuide)}
+                    className="w-full flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 hover:bg-gray-100 transition"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {showGuide ? "Ocultar" : "Ver"} guia detalhado — {finishLabel}
+                    <span className="ml-auto">{showGuide ? "▲" : "▼"}</span>
+                  </button>
+                  {showGuide && (
+                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-3 animate-fade-in">
+                      <div className="flex gap-3">
+                        <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-blue-800 text-sm">Descrição</span>
+                          <p className="text-blue-700 text-sm mt-0.5">{FINISH_GUIDES[finish].desc}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Lightbulb className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-blue-800 text-sm">Melhor para</span>
+                          <p className="text-blue-700 text-sm mt-0.5">{FINISH_GUIDES[finish].bestFor}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Shield className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-blue-800 text-sm">Evitar em</span>
+                          <p className="text-blue-700 text-sm mt-0.5">{FINISH_GUIDES[finish].avoid}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Droplet className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-blue-800 text-sm">Manutenção</span>
+                          <p className="text-blue-700 text-sm mt-0.5">{FINISH_GUIDES[finish].maintenance}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between mt-6">
                 <button onClick={() => goTo("surface")} className="text-gray-500 hover:text-gray-900 text-sm flex items-center gap-1 font-semibold">
                   <ArrowLeft className="h-4 w-4" /> Voltar
@@ -455,7 +819,63 @@ function PaintsPage() {
                 </div>
               </div>
 
-              {recommendedProducts.length > 0 && (
+              {/* Usage guide summary */}
+              {surface && SURFACE_GUIDES[surface] && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="h-5 w-5 text-emerald-600" />
+                    <h3 className="font-bold text-emerald-800 text-sm">Dica para {surfaceLabel}</h3>
+                  </div>
+                  <p className="text-emerald-700 text-sm">{SURFACE_GUIDES[surface].tip}</p>
+                </div>
+              )}
+
+              {/* Description-based search results (if used) */}
+              {describedResults.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Search className="h-5 w-5" style={{ color: NEUCE_RED }} />
+                    <h3 className="text-lg font-bold text-gray-900">Produtos recomendados para si</h3>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3">Resultados ordenados por relevância à sua descrição</p>
+                  <div className="space-y-2">
+                    {describedResults.map(({ product: p, score }) => (
+                      <Link
+                        key={p.id}
+                        to="/kiosk/product/$id"
+                        params={{ id: p.id }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition border border-gray-100"
+                      >
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-contain bg-white border border-gray-100" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <Paintbrush className="h-7 w-7 text-gray-300" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-gray-900 text-sm">{p.name}</div>
+                          {p.description && (
+                            <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{p.description}</div>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {p.price != null && (
+                              <span className="text-xs font-semibold text-gray-700">
+                                {p.price.toFixed(2).replace(".", ",")}€
+                              </span>
+                            )}
+                            <span className="text-[10px] text-gray-400">{p.category}</span>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-300 shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Category-based recommendations */}
+              {recommendedProducts.length > 0 && describedResults.length === 0 && (
                 <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <ShoppingCart className="h-5 w-5" style={{ color: NEUCE_RED }} />
@@ -478,6 +898,9 @@ function PaintsPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-gray-900 text-sm truncate">{p.name}</div>
+                          {p.description && (
+                            <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{p.description}</div>
+                          )}
                           {p.price != null && (
                             <div className="text-gray-500 text-xs mt-0.5">
                               {p.price.toFixed(2).replace(".", ",")}€
@@ -577,6 +1000,31 @@ function PaintsPage() {
                     <div className="w-10 h-10 rounded-xl border-2 border-gray-200 shadow-sm" style={{ backgroundColor: selectedColor }} />
                   </div>
                 </div>
+              </div>
+
+              {/* Paint tips */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  className="w-full flex items-center gap-2 text-sm font-semibold text-gray-700"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Dicas de pintura
+                  <span className="ml-auto">{showGuide ? "▲" : "▼"}</span>
+                </button>
+                {showGuide && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
+                    {PAINT_TIPS.map((tip, i) => (
+                      <div key={i} className="flex gap-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <div className="text-blue-600 shrink-0 mt-0.5">{tip.icon}</div>
+                        <div>
+                          <span className="font-bold text-gray-800 text-sm">{tip.title}</span>
+                          <p className="text-gray-500 text-xs mt-0.5">{tip.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
