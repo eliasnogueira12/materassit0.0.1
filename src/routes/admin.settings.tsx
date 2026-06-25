@@ -155,6 +155,27 @@ function AdminSettingsPage() {
   const [storeName, setStoreName] = useState("MarquesMater");
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  // Kiosk Config States
+  const [kioskInstances, setKioskInstances] = useState<string[]>(["Quiosque 1"]);
+  const [kioskPages, setKioskPages] = useState<Record<string, Record<string, boolean>>>(() => ({
+    "Quiosque 1": { paints: true, assistant: true, search: true, problems: true },
+  }));
+  const [newKioskLabel, setNewKioskLabel] = useState("");
+
+  const pageLabels: Record<string, string> = {
+    paints: "Casa das Tintas",
+    assistant: "Assistente IA",
+    search: "Catálogo",
+    problems: "Problemas",
+  };
+
+  const pageIcons: Record<string, string> = {
+    paints: "🎨",
+    assistant: "🤖",
+    search: "🔍",
+    problems: "🔧",
+  };
+
   // Load Settings from Supabase
   useEffect(() => {
     // Load phrases
@@ -219,6 +240,28 @@ function AdminSettingsPage() {
             const b = data.value as Record<string, string>;
             if (b.logo_url) setLogoUrl(b.logo_url);
             if (b.store_name) setStoreName(b.store_name);
+          }
+        },
+        () => {},
+      );
+
+    // Load kiosk config
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "kiosk_config")
+      .maybeSingle()
+      .then(
+        ({ data }) => {
+          if (data?.value) {
+            const cfg = data.value as unknown as { kiosks: Array<{ label: string; pages: Record<string, boolean> }> };
+            if (cfg?.kiosks && Array.isArray(cfg.kiosks)) {
+              const labels = cfg.kiosks.map((k) => k.label);
+              const pages: Record<string, Record<string, boolean>> = {};
+              cfg.kiosks.forEach((k) => { pages[k.label] = k.pages; });
+              setKioskInstances(labels);
+              setKioskPages(pages);
+            }
           }
         },
         () => {},
@@ -518,6 +561,47 @@ function AdminSettingsPage() {
     );
   }
 
+  function handleSaveKiosks() {
+    const kiosks = kioskInstances.map((label) => ({
+      label,
+      pages: kioskPages[label] || { paints: true, assistant: true, search: true, problems: true },
+    }));
+    saveSetting("kiosk_config", { kiosks }, "Configuração dos quiosques guardada!");
+  }
+
+  function addKiosk() {
+    const label = newKioskLabel.trim();
+    if (!label) return;
+    if (kioskInstances.includes(label)) {
+      toast.error("Já existe um quiosque com este nome.");
+      return;
+    }
+    setKioskInstances([...kioskInstances, label]);
+    setKioskPages({ ...kioskPages, [label]: { paints: true, assistant: true, search: true, problems: true } });
+    setNewKioskLabel("");
+  }
+
+  function removeKiosk(label: string) {
+    if (kioskInstances.length <= 1) {
+      toast.error("Pelo menos um quiosque é obrigatório.");
+      return;
+    }
+    setKioskInstances(kioskInstances.filter((l) => l !== label));
+    const rest = { ...kioskPages };
+    delete rest[label];
+    setKioskPages(rest);
+  }
+
+  function toggleKioskPage(label: string, page: string) {
+    setKioskPages({
+      ...kioskPages,
+      [label]: {
+        ...kioskPages[label],
+        [page]: !kioskPages[label]?.[page],
+      },
+    });
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
@@ -528,7 +612,7 @@ function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="credentials" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 gap-2 bg-muted p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-8 gap-2 bg-muted p-1 rounded-xl">
           <TabsTrigger
             value="credentials"
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
@@ -552,6 +636,12 @@ function AdminSettingsPage() {
             className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
           >
             <Image className="h-4 w-4" /> Marca
+          </TabsTrigger>
+          <TabsTrigger
+            value="kiosks"
+            className="flex items-center gap-2 py-2.5 rounded-lg text-sm"
+          >
+            <Layers className="h-4 w-4" /> Quiosques
           </TabsTrigger>
           <TabsTrigger
             value="barcodes"
@@ -1278,6 +1368,87 @@ function AdminSettingsPage() {
               <Button onClick={handleSaveBranding} disabled={busy}>
                 <Save className="h-4 w-4 mr-1.5" />
                 {busy ? "A guardar..." : "Guardar Marca"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="kiosks" className="mt-4 focus-visible:outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                Configuração dos Quiosques
+              </CardTitle>
+              <CardDescription>
+                Ative ou desative páginas para cada quiosque. Use <code className="text-xs bg-muted px-1 rounded">?k=Nome</code> na URL do quiosque.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {kioskInstances.map((label) => (
+                <div key={label} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                        {kioskInstances.indexOf(label) + 1}
+                      </div>
+                      <span className="font-bold text-gray-900">{label}</span>
+                    </div>
+                    <button
+                      onClick={() => removeKiosk(label)}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1"
+                      disabled={kioskInstances.length <= 1}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remover
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {Object.entries(pageLabels).map(([key, plabel]) => {
+                      const enabled = kioskPages[label]?.[key] ?? true;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleKioskPage(label, key)}
+                          className={`p-4 rounded-xl text-center transition-all border-2 ${
+                            enabled
+                              ? "border-emerald-300 bg-emerald-50"
+                              : "border-gray-200 bg-white opacity-60"
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{pageIcons[key]}</div>
+                          <div className={`text-xs font-bold ${enabled ? "text-emerald-700" : "text-gray-500"}`}>
+                            {plabel}
+                          </div>
+                          <div className={`text-[10px] mt-1 font-semibold ${enabled ? "text-emerald-600" : "text-gray-400"}`}>
+                            {enabled ? "Ativo" : "Inativo"}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 text-xs text-gray-400">
+                    URL: <code className="bg-gray-100 px-1 rounded">{`/kiosk?k=${encodeURIComponent(label)}`}</code>
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  value={newKioskLabel}
+                  onChange={(e) => setNewKioskLabel(e.target.value)}
+                  placeholder="Nome do novo quiosque..."
+                  className="flex-1 h-10 bg-white border border-gray-300 rounded-xl px-4 text-sm outline-none focus:border-primary"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKiosk(); } }}
+                />
+                <Button onClick={addKiosk} disabled={!newKioskLabel.trim()} variant="outline" className="h-10">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t pt-4">
+              <Button onClick={handleSaveKiosks} disabled={busy}>
+                <Save className="h-4 w-4 mr-2" />
+                {busy ? "A guardar..." : "Guardar configuração"}
               </Button>
             </CardFooter>
           </Card>

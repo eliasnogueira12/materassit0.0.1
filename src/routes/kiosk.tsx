@@ -16,14 +16,32 @@ import { FavoritesProvider } from "@/lib/useFavorites";
 import { FavoritesFAB } from "@/components/FavoritesDrawer";
 import { CompareProvider } from "@/lib/useCompare";
 import { CompareBar } from "@/components/CompareBar";
+import { useKioskConfig, getKioskLabel, getEnabledPages } from "@/lib/useKioskConfig";
+import type { KioskPage } from "@/lib/useKioskConfig";
 
 export const Route = createFileRoute("/kiosk")({
   component: KioskLayout,
 });
 
+const NAV_ITEMS: { page: KioskPage; to: string; icon: React.ReactNode; label: string }[] = [
+  { page: "paints", to: "/kiosk/paints", icon: <Paintbrush className="h-5 w-5" />, label: "Tintas" },
+  { page: "assistant", to: "/kiosk/assistant", icon: <Sparkles className="h-5 w-5" />, label: "Assistente" },
+  { page: "search", to: "/kiosk/search", icon: <Search className="h-5 w-5" />, label: "Produtos" },
+  { page: "problems", to: "/kiosk/problems", icon: <Wrench className="h-5 w-5" />, label: "Problemas" },
+];
+
 function KioskLayout() {
-  const { warning, secondsLeft, dismiss, endSession } = useKioskIdle(); // 15-second total timeout
+  const { warning, secondsLeft, dismiss, endSession } = useKioskIdle();
   const navigate = useNavigate();
+  const { config, loading } = useKioskConfig();
+  const kioskLabel = getKioskLabel();
+
+  const enabledPages = loading
+    ? Object.fromEntries(NAV_ITEMS.map((n) => [n.page, true]))
+    : getEnabledPages(config, kioskLabel);
+
+  const visibleNavItems = NAV_ITEMS.filter((n) => enabledPages[n.page]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="bg-primary text-primary-foreground px-6 py-4 flex items-center justify-between shadow-md">
@@ -33,10 +51,9 @@ function KioskLayout() {
         </Link>
         <nav className="flex gap-2">
           <NavLink to="/kiosk/start" icon={<Home className="h-5 w-5" />} label="Início" />
-          <NavLink to="/kiosk/paints" icon={<Paintbrush className="h-5 w-5" />} label="Tintas" />
-          <NavLink to="/kiosk/assistant" icon={<Sparkles className="h-5 w-5" />} label="Assistente" />
-          <NavLink to="/kiosk/search" icon={<Search className="h-5 w-5" />} label="Produtos" />
-          <NavLink to="/kiosk/problems" icon={<Wrench className="h-5 w-5" />} label="Problemas" />
+          {visibleNavItems.map((item) => (
+            <NavLink key={item.page} to={item.to} icon={item.icon} label={item.label} />
+          ))}
           <button
             onClick={() => {
               clearKioskSession();
