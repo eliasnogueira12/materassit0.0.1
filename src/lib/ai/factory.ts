@@ -3,6 +3,56 @@ import { GeminiProvider } from "./gemini-provider";
 import { OpenAIProvider } from "./openai-provider";
 import { ClaudeProvider } from "./claude-provider";
 import { GroqProvider } from "./groq-provider";
+import { CloudflareProvider } from "./cloudflare-provider";
+
+export class FallbackProvider implements AIProvider {
+  private providers: AIProvider[];
+
+  constructor(providers: AIProvider[]) {
+    this.providers = providers;
+  }
+
+  async sendMessage(params: {
+    systemPrompt: string;
+    message: string;
+    history: any[];
+    tools?: any[];
+  }) {
+    let lastError: any = null;
+    for (const provider of this.providers) {
+      try {
+        console.log(`[AI] Tentando enviar mensagem com o provedor: ${provider.constructor.name}`);
+        return await provider.sendMessage(params);
+      } catch (err: any) {
+        console.warn(`[AI] Provedor ${provider.constructor.name} falhou:`, err.message || err);
+        lastError = err;
+      }
+    }
+    throw lastError || new Error("Todos os provedores de IA falharam.");
+  }
+
+  async sendMessageStream(params: {
+    systemPrompt: string;
+    message: string;
+    history: any[];
+    tools?: any[];
+    onChunk: (chunk: string) => void;
+    onToolCalls?: (calls: any[]) => void;
+  }): Promise<string> {
+    let lastError: any = null;
+    for (const provider of this.providers) {
+      if (!provider.sendMessageStream) continue;
+      try {
+        console.log(`[AI] Tentando stream com o provedor: ${provider.constructor.name}`);
+        return await provider.sendMessageStream(params);
+      } catch (err: any) {
+        console.warn(`[AI] Provedor stream ${provider.constructor.name} falhou:`, err.message || err);
+        lastError = err;
+      }
+    }
+    throw lastError || new Error("Todos os provedores de stream de IA falharam.");
+  }
+}
 
 export function getAIProvider(): AIProvider {
   const providerType = (process.env.AI_PROVIDER || "").toLowerCase().trim();
@@ -10,57 +60,55 @@ export function getAIProvider(): AIProvider {
   const openAiApiKey = process.env.OPENAI_API_KEY || "";
   const claudeApiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY || "";
   const groqApiKey = process.env.GROQ_API_KEY || "";
+  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID || "";
+  const cfApiToken = process.env.CLOUDFLARE_API_TOKEN || "";
 
-  // 1) Explicit provider selection
-  if (providerType === "gemini") {
-    if (!geminiApiKey) {
-      throw new Error(
-        "Variável AI_PROVIDER definida para 'gemini', mas GEMINI_API_KEY não foi configurada.",
-      );
+  const providers: AIProvider[] = [];
+
+  function addProvider(type: string) {
+    if (type === "gemini" && geminiApiKey) {
+      providers.push(new GeminiProvider(geminiApiKey));
+      return true;
     }
-    return new GeminiProvider(geminiApiKey);
-  }
-  if (providerType === "openai") {
-    if (!openAiApiKey) {
-      throw new Error(
-        "Variável AI_PROVIDER definida para 'openai', mas OPENAI_API_KEY não foi configurada.",
-      );
+    if (type === "cloudflare" && cfAccountId && cfApiToken) {
+      providers.push(new CloudflareProvider(cfAccountId, cfApiToken));
+      return true;
     }
-    return new OpenAIProvider(openAiApiKey);
-  }
-  if (providerType === "claude") {
-    if (!claudeApiKey) {
-      throw new Error(
-        "Variável AI_PROVIDER definida para 'claude', mas CLAUDE_API_KEY ou ANTHROPIC_API_KEY não foi configurada.",
-      );
+    if (type === "groq" && groqApiKey) {
+      providers.push(new GroqProvider(groqApiKey));
+      return true;
     }
-    return new ClaudeProvider(claudeApiKey);
-  }
-  if (providerType === "groq") {
-    if (!groqApiKey) {
-      throw new Error(
-        "Variável AI_PROVIDER definida para 'groq', mas GROQ_API_KEY não foi configurada.",
-      );
+    if (type === "openai" && openAiApiKey) {
+      providers.push(new OpenAIProvider(openAiApiKey));
+      return true;
     }
-    return new GroqProvider(groqApiKey);
+    if (type === "claude" && claudeApiKey) {
+      providers.push(new ClaudeProvider(claudeApiKey));
+      return true;
+    }
+    return false;
   }
 
-  // 2) Automatic detection cascade
-  if (geminiApiKey) {
-    return new GeminiProvider(geminiApiKey);
-  }
-  if (groqApiKey) {
-    return new GroqProvider(groqApiKey);
-  }
-  if (openAiApiKey) {
-    return new OpenAIProvider(openAiApiKey);
-  }
-  if (claudeApiKey) {
-    return new ClaudeProvider(claudeApiKey);
+  // 1) Add explicitly requested provider first
+  if (providerType) {
+    const added = addProvider(providerType);
+    if (!added) {
+      console.warn(`[AI] Provedor ${providerType} explicitamente configurado mas com chaves em falta.`);
+    }
   }
 
-  // 3) Fatal configuration error
-  throw new Error(
-    "Nenhum fornecedor de Inteligência Artificial configurado. Por favor, adicione GEMINI_API_KEY no ficheiro .env para ativar o assistente.",
-  );
+  // 2) Add fallback options in priority order
+  if (providerType !== "gemini") addProvider("gemini");
+  if (providerType !== "cloudflare") addProvider("cloudflare");
+  if (providerType !== "groq") addProvider("groq");
+  if (providerType !== "openai") addProvider("openai");
+  if (providerType !== "claude") addProvider("claude");
+
+  if (providers.length === 0) {
+    throw new Error(
+      "Nenhum fornecedor de Inteligência Artificial configurado. Por favor, adicione GEMINI_API_KEY ou credenciais Cloudflare no ficheiro .env para ativar o assistente.",
+    );
+  }
+
+  return new FallbackProvider(providers);
 }
