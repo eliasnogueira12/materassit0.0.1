@@ -330,6 +330,34 @@ function toRecommended(products: any[], productMap: Map<string, any>): Recommend
   });
 }
 
+function parseTextToolCalls(reply: string): { cleanedReply: string; toolCalls: any[] } {
+  const toolCalls: any[] = [];
+  let cleanedReply = reply;
+
+  // Regex for <function=name>args</function>
+  const regex = /<function=([\w_-]+)>([\s\S]*?)<\/function>/gi;
+  let match;
+  
+  while ((match = regex.exec(reply)) !== null) {
+    const name = match[1];
+    const argsStr = match[2].trim();
+    toolCalls.push({
+      type: "function",
+      function: {
+        name,
+        arguments: argsStr,
+      },
+    });
+  }
+
+  // Remove the tags from the reply
+  cleanedReply = cleanedReply.replace(regex, "").trim();
+  // Clean up any double empty lines left by the removal
+  cleanedReply = cleanedReply.replace(/\n{3,}/g, "\n\n");
+
+  return { cleanedReply, toolCalls };
+}
+
 export const askAssistant = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data }) => {
@@ -463,10 +491,18 @@ REGRAS:
         tools,
       });
 
+      // Parse any function tags embedded in the text reply (fallback for some models/APIs)
+      const textParse = parseTextToolCalls(result.reply || "");
+      const combinedToolCalls = [
+        ...(result.toolCalls ?? []),
+        ...textParse.toolCalls,
+      ];
+      const cleanedReply = textParse.cleanedReply;
+
       const recommended: RecommendedProduct[] = [];
       const addToCart: { productId: string; name: string; price: number; location: string }[] = [];
       const seen = new Set<string>();
-      for (const call of result.toolCalls ?? []) {
+      for (const call of combinedToolCalls) {
         if (call?.function?.name === "recommend_products") {
           try {
             const args = JSON.parse(call.function.arguments ?? "{}");
@@ -515,7 +551,7 @@ REGRAS:
         }
       }
 
-      return { reply: result.reply, greeting, products: recommended, addToCart };
+      return { reply: cleanedReply, greeting, products: recommended, addToCart };
     } catch {
       return {
         reply: localResults.reply,
